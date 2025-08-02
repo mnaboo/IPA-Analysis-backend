@@ -33,3 +33,7 @@ app/.vercel/
 # typescript
 app/*.tsbuildinfo
 app/next-env.d.ts
+
+*.env
+**/config.env
+

@@ -33,3 +33,6 @@ config.env
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+*.env
+**/config.env
