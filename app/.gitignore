@@ -35,4 +35,4 @@ config.env
 next-env.d.ts
 
 *.env
-**/config.env
+app/src/config.env
