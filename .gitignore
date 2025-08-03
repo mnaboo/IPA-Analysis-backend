@@ -37,3 +37,4 @@ app/next-env.d.ts
 *.env
 **/config.env
 
+node_modules
