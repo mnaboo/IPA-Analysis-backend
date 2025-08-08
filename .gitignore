@@ -34,3 +34,4 @@ src/config.env
 next-env.d.ts
 
 *.env
+.idea/
