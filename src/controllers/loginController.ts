@@ -1,97 +1,112 @@
-import userModel, { getUserBySessionToken } from "../models/user";
+// src/controllers/loginController.ts
 import { Request, Response } from "express";
-import { createUser, getUserByEmail } from "../models/user";
+import userModel, { getUserBySessionToken } from "../models/user";
 import { authentication, random } from "../models/helpers";
 
-export const getAllUsers: (
-  req: Request,
-  res: Response
-) => Promise<void> = async (req, res) => {
+/** GET /api/v1/users — bez dotykania `authentication` */
+export const getAllUsers = async (_req: Request, res: Response) => {
   try {
-    const users = await userModel.find();
-    res.json(users);
+    const users = await userModel.find(
+      {},
+      { _id: 1, index: 1, mail: 1, role: 1, createdAt: 1, updatedAt: 1 } // tylko włączenia
+    ).lean();
+    return res.status(200).json({ status: "success", data: { users } });
   } catch (err) {
-    console.log("Error💥: ", err);
-    res.status(500).json({ error: "getAllUsers error" });
+    console.error("Error💥 getAllUsers:", err);
+    return res.status(500).json({ status: "failed", message: "getAllUsers error" });
   }
 };
 
+/** POST /api/v1/login */
 export const login = async (req: Request, res: Response) => {
   try {
-    const { mail, password } = req.body;
-
-    if (!mail || !password) {
-      return res.status(400).json({
-        status: "failed",
-        message: "Email and password are required.",
-      });
+    const { mail, password } = req.body as { mail?: string; password?: string };
+    if (typeof mail !== "string" || typeof password !== "string") {
+      return res.status(400).json({ status: "failed", message: "Email and password are required." });
     }
 
-    const user = await userModel
-      .findOne({ mail })
-      .select(
-        "+authentication.password +authentication.salt +authentication.sessionToken"
-      );
+    // 1) Pobierz tylko to, co potrzebne do weryfikacji — SAMO WŁĄCZANIE PÓL
+    const rawUser = await userModel.collection.findOne(
+      { mail },
+      {
+        projection: {
+          _id: 1,
+          index: 1,
+          mail: 1,
+          role: 1,
+          "authentication.password": 1,
+          "authentication.salt": 1,
+        },
+      }
+    );
 
-    if (!user) {
+    if (!rawUser?.authentication?.salt || !rawUser.authentication?.password) {
       return res.status(400).json({
         status: "failed",
         message: "Check your email address and password or create an account.",
       });
     }
 
-    if (!user.authentication) {
-      return res.status(400).json({
-        status: "failed",
-        message: "User authentication details not found.",
-      });
-    }
-
-    const salt = user.authentication.salt;
-    if (!salt) {
-      return res
-        .status(400)
-        .json({ status: "failed", message: "Salt not found for user." });
-    }
-
-    const expectedHash = authentication(salt, password);
-
-    if (user.authentication.password !== expectedHash) {
+    const expected = authentication(rawUser.authentication.salt as string, password);
+    if (expected !== (rawUser.authentication.password as string)) {
       return res.status(403).json({
         status: "failed",
         message: "Check your email address and password or create an account.",
       });
     }
 
-    // Assuming authentication function generates a new session token
-    const sessionToken = authentication(random(), user._id.toString());
-    user.authentication.sessionToken = sessionToken;
+    // 2) Wygeneruj i zapisz sessionToken (nie dotykamy projekcji)
+    const sessionToken = authentication(random(), String(rawUser._id));
+    await userModel.updateOne(
+      { _id: rawUser._id },
+      { $set: { "authentication.sessionToken": sessionToken } }
+    );
 
-    await user.save();
-    res.cookie("MICHAL-AUTH", sessionToken, { domain: "localhost", path: "/" });
+    // 3) Ustaw cookie (na localhost bez `domain`)
+    res.cookie("MICHAL-AUTH", sessionToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
 
-    return res.status(200).json({ status: "success", data: { user } }).end();
+    // 4) Zwróć bezpieczne dane — BEZ dodatkowego find’a i bez `authentication`
+    const safeUser = {
+      _id: rawUser._id,
+      index: rawUser.index,
+      mail: rawUser.mail,
+      role: rawUser.role,
+    };
+
+    return res.status(200).json({ status: "success", data: { user: safeUser } });
   } catch (error) {
-    console.log(error);
-    return res.sendStatus(400);
+    console.error("Error💥 login:", error);
+    return res.status(400).json({ status: "failed", message: "Login failed" });
   }
 };
 
+/** GET /api/v1/login/me — tylko włączenia pól (zero odniesień do `authentication`) */
 export const getUser = async (req: Request, res: Response) => {
-  const sessionToken = req.body.token;
-  
+  const cookieToken = req.cookies?.["MICHAL-AUTH"] as string | undefined;
+  const headerToken = req.get("x-session-token") ?? undefined;
+  const bodyToken = typeof req.body?.token === "string" ? req.body.token : undefined;
+  const sessionToken: string | undefined = cookieToken ?? headerToken ?? bodyToken;
+
+  if (!sessionToken) {
+    return res.status(401).json({ status: "failed", message: "No session token" });
+  }
+
   try {
-    const user = await getUserBySessionToken(sessionToken);
+    // UWAGA: żadnych `.select("-authentication")` — wyłącznie lista włączeń
+    const user = await userModel.findOne(
+      { "authentication.sessionToken": sessionToken },
+      { _id: 1, index: 1, mail: 1, role: 1 }
+    ).lean();
 
-    if (!user) {
-      return res
-        .status(404)
-        .json({ status: "failed", message: "User not found" });
-    }
-
-    return res.status(200).json(user);
+    if (!user) return res.status(404).json({ status: "failed", message: "User not found" });
+    return res.status(200).json({ status: "success", data: { user } });
   } catch (error) {
-    console.log(error);
+    console.error("Error💥 getUser:", error);
     return res.sendStatus(500);
   }
 };
