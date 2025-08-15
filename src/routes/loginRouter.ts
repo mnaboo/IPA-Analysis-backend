@@ -4,37 +4,31 @@ import { getUser, login } from "../controllers/loginController";
 const router = express.Router();
 
 /**
- * @swagger
+ * @openapi
  * tags:
- *   name: Login
- *   description: Endpoints for user login and authentication
+ *   - name: Login
+ *     description: Endpoints for user login and authentication
  */
 
 /**
- * @swagger
+ * @openapi
  * /api/v1/login:
  *   post:
- *     summary: Log in a user
  *     tags: [Login]
+ *     summary: Log in a user
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - mail
- *               - password
- *             properties:
- *               mail:
- *                 type: string
- *                 example: 123456@stud.prz.edu.pl
- *               password:
- *                 type: string
- *                 example: qwerty123
+ *             $ref: '#/components/schemas/LoginRequest'
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful (cookie set)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
  *       400:
  *         description: Missing or invalid credentials
  *       403:
@@ -43,19 +37,21 @@ const router = express.Router();
 router.route("/").post(login);
 
 /**
- * @swagger
+ * @openapi
  * /api/v1/login/getUser:
  *   post:
- *     summary: Get a user based on session token
  *     tags: [Login]
+ *     summary: Get a user based on session token
+ *     description: Reads session from cookie **MICHAL-AUTH** or header **x-session-token**. Body `token` jest tylko fallbackiem.
+ *     security:
+ *       - cookieAuth: []
+ *       - sessionToken: []
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - token
  *             properties:
  *               token:
  *                 type: string
@@ -63,6 +59,12 @@ router.route("/").post(login);
  *     responses:
  *       200:
  *         description: User data returned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserResponse'
+ *       401:
+ *         description: No session token
  *       404:
  *         description: User not found
  */

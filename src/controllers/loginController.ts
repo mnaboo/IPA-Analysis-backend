@@ -63,7 +63,7 @@ export const login = async (req: Request, res: Response) => {
     );
 
     // 3) Ustaw cookie (na localhost bez `domain`)
-    res.cookie("MICHAL-AUTH", sessionToken, {
+    res.cookie("MACIEJ-AUTH", sessionToken, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
