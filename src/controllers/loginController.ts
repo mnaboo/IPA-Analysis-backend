@@ -1,14 +1,15 @@
 // src/controllers/loginController.ts
 import { Request, Response } from "express";
-import userModel, { getUserBySessionToken } from "../models/user";
+import userModel from "../models/user";
 import { authentication, random } from "../models/helpers";
+import { COOKIE_NAME, HEADER_NAME } from "../middleware/auth";
 
 /** GET /api/v1/users — bez dotykania `authentication` */
 export const getAllUsers = async (_req: Request, res: Response) => {
   try {
     const users = await userModel.find(
       {},
-      { _id: 1, index: 1, mail: 1, role: 1, createdAt: 1, updatedAt: 1 } // tylko włączenia
+      { _id: 1, index: 1, mail: 1, role: 1, createdAt: 1, updatedAt: 1 }
     ).lean();
     return res.status(200).json({ status: "success", data: { users } });
   } catch (err) {
@@ -25,7 +26,7 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ status: "failed", message: "Email and password are required." });
     }
 
-    // 1) Pobierz tylko to, co potrzebne do weryfikacji — SAMO WŁĄCZANIE PÓL
+    // pobierz tylko to, co potrzebne do weryfikacji
     const rawUser = await userModel.collection.findOne(
       { mail },
       {
@@ -55,22 +56,21 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // 2) Wygeneruj i zapisz sessionToken (nie dotykamy projekcji)
+    // wygeneruj i zapisz sessionToken
     const sessionToken = authentication(random(), String(rawUser._id));
     await userModel.updateOne(
       { _id: rawUser._id },
       { $set: { "authentication.sessionToken": sessionToken } }
     );
 
-    // 3) Ustaw cookie (na localhost bez `domain`)
-    res.cookie("MACIEJ-AUTH", sessionToken, {
+    // ustaw cookie
+    res.cookie(COOKIE_NAME, sessionToken, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
     });
 
-    // 4) Zwróć bezpieczne dane — BEZ dodatkowego find’a i bez `authentication`
     const safeUser = {
       _id: rawUser._id,
       index: rawUser.index,
@@ -85,19 +85,18 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-/** GET /api/v1/login/me — tylko włączenia pól (zero odniesień do `authentication`) */
+/** POST /api/v1/login/getUser */
 export const getUser = async (req: Request, res: Response) => {
-  const cookieToken = req.cookies?.["MICHAL-AUTH"] as string | undefined;
-  const headerToken = req.get("x-session-token") ?? undefined;
+  const cookieToken = req.cookies?.[COOKIE_NAME] as string | undefined;
+  const headerToken = req.get(HEADER_NAME) ?? undefined;
   const bodyToken = typeof req.body?.token === "string" ? req.body.token : undefined;
-  const sessionToken: string | undefined = cookieToken ?? headerToken ?? bodyToken;
+  const sessionToken: string | undefined = cookieToken ?? (headerToken as string | undefined) ?? bodyToken;
 
   if (!sessionToken) {
     return res.status(401).json({ status: "failed", message: "No session token" });
   }
 
   try {
-    // UWAGA: żadnych `.select("-authentication")` — wyłącznie lista włączeń
     const user = await userModel.findOne(
       { "authentication.sessionToken": sessionToken },
       { _id: 1, index: 1, mail: 1, role: 1 }

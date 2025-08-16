@@ -42,7 +42,7 @@ router.route("/").post(login);
  *   post:
  *     tags: [Login]
  *     summary: Get a user based on session token
- *     description: Reads session from cookie **MICHAL-AUTH** or header **x-session-token**. Body `token` jest tylko fallbackiem.
+ *     description: Reads session from cookie **MACIEJ-AUTH** or header **x-session-token**. Body `token` jest tylko fallbackiem.
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []

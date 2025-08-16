@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { getUserBySessionToken, Role } from "../models/user";
 
-export const COOKIE_NAME = "MICHAL-AUTH";
+export const COOKIE_NAME = "MACIEJ-AUTH";
 export const HEADER_NAME = "x-session-token";
 
 declare global {
