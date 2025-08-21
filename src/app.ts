@@ -2,11 +2,19 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+
+// ROUTERS
 import loginRouter from "./routes/loginRouter";
 import signUpRouter from "./routes/signUpRouter";
 import adminRouter from "./routes/adminRouter";
-import groupRouter from "./routes/userGroupRouter";              // ⬅️ NOWE (użytkownik)
-import adminGroupsRouter from "./routes/adminGroupRouter";  // ⬅️ NOWE (admin)
+import groupRouter from "./routes/userGroupRouter";              // ⬅️ USER (grupy)
+import adminGroupsRouter from "./routes/adminGroupRouter";       // ⬅️ ADMIN (grupy)
+import templateRouter from "./routes/templateRouter";            // ⬅️ Template CRUD
+import testRouter from "./routes/testRouter";                    // ⬅️ Testy z szablonów
+import questionTemplateRouter from "./routes/questionTemplateRouter";  // ⬅️ Pytania do szablonów
+import answerRouter from "./routes/answerRouter";                // ⬅️ Odpowiedzi / IPA
+
+// Swagger
 import { setupSwagger } from "./config/swagger";
 
 const app = express();
@@ -27,14 +35,23 @@ app.use(morgan("dev"));
 
 setupSwagger(app);
 
+// ✅ Autoryzacja
 app.use("/api/v1/signup", signUpRouter);
 app.use("/api/v1/login", loginRouter);
 
-// USER groups endpoints
-app.use("/api/v1/groups", groupRouter);            
+// ✅ USER endpoints
+app.use("/api/v1/groups", groupRouter); // user view
 
-// ADMIN endpoints
+// ✅ ADMIN endpoints
 app.use("/api/v1/admin", adminRouter);
-app.use("/api/v1/admin/groups", adminGroupsRouter);  
+app.use("/api/v1/admin/groups", adminGroupsRouter); // admin view
+
+// ✅ Templates and Tests
+app.use("/api/v1/templates", templateRouter);
+app.use("/api/v1/tests", testRouter);
+app.use("/api/v1/questions", questionTemplateRouter);
+
+// ✅ Answers and IPA results
+app.use("/api/v1/answers", answerRouter);
 
 export default app;
