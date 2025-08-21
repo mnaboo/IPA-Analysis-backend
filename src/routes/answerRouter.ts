@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, requireRole } from '../middleware/auth';
+import { Role } from '../models/user';
 import {
   submitAnswersController,
   getAnswersByTestController,
@@ -15,9 +16,6 @@ const router = Router();
  *   - name: Answers
  *     description: Submit and retrieve answers
  */
-
-// Wszystkie endpointy wymagają autoryzacji
-router.use(requireAuth);
 
 /**
  * @openapi
@@ -47,8 +45,7 @@ router.use(requireAuth);
  *                   type: object
  *                   properties:
  *                     questionId: { type: string }
- *                     importance: { type: integer, minimum: 1, maximum: 5 }
- *                     performance: { type: integer, minimum: 1, maximum: 5 }
+ *                     value: { type: integer, minimum: 1, maximum: 5 }
  *               openAnswer:
  *                 type: string
  *     responses:
@@ -56,7 +53,10 @@ router.use(requireAuth);
  *       400: { description: Already submitted or invalid data }
  *       404: { description: Test not found }
  */
-router.post('/:testId', submitAnswersController);
+router.post('/:testId', requireAuth, submitAnswersController);
+
+// ADMIN ONLY
+router.use(requireAuth, requireRole(Role.Admin));
 
 /**
  * @openapi
@@ -104,7 +104,6 @@ router.get('/user/:userId', getAnswersByUserController);
  *   get:
  *     tags: [Answers]
  *     summary: Get aggregated IPA results for a test
- *     description: Returns averaged importance and performance
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []
@@ -125,9 +124,8 @@ router.get('/user/:userId', getAnswersByUserController);
  *                 data:
  *                   type: object
  *                   properties:
- *                     importance: { type: number }
- *                     performance: { type: number }
- *                     totalResponses: { type: number }
+ *                     avgImportance: { type: number }
+ *                     avgPerformance: { type: number }
  *       404: { description: Test not found }
  */
 router.get('/results/:testId', getAggregatedResultsController);
