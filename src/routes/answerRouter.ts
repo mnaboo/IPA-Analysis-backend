@@ -16,7 +16,7 @@ const router = Router();
  *   - name: Answers
  *     description: Submit and retrieve answers
  */
-
+router.use(requireAuth);
 /**
  * @openapi
  * /api/v1/answers/{testId}:

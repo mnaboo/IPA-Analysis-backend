@@ -16,6 +16,7 @@ import answerRouter from "./routes/answerRouter";                // ⬅️ Odpow
 
 // Swagger
 import { setupSwagger } from "./config/swagger";
+import logoutRouter from "./routes/logoutRouter";
 
 const app = express();
 
@@ -38,6 +39,7 @@ setupSwagger(app);
 // ✅ Autoryzacja
 app.use("/api/v1/signup", signUpRouter);
 app.use("/api/v1/login", loginRouter);
+app.use("/api/v1/logout", logoutRouter);
 
 // ✅ USER endpoints
 app.use("/api/v1/groups", groupRouter); // user view

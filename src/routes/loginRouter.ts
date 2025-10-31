@@ -1,5 +1,6 @@
 import express from "express";
 import { getUser, login } from "../controllers/loginController";
+import { requireAuth, requireGuest } from "../middleware/auth";
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const router = express.Router();
  *   - name: Login
  *     description: Endpoints for user login and authentication
  */
-
+router.use(requireGuest);
 /**
  * @openapi
  * /api/v1/login:

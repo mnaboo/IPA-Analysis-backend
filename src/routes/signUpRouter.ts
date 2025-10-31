@@ -1,5 +1,6 @@
 import express from 'express';
 import { register } from '../controllers/signUpController';
+import { requireGuest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const router = express.Router();
  *   name: SignUp
  *   description: Endpoints for user registration
  */
-
+router.use(requireGuest);
 /**
  * @swagger
  * /api/v1/signup:

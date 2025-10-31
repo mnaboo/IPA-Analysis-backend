@@ -10,21 +10,38 @@ declare global {
   }
 }
 
-export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
+// pomocniczo: wyciągnij usera z tokenu (cookie/header)
+async function resolveUserFromRequest(req: Request) {
   const token =
     (req.cookies?.[COOKIE_NAME] as string | undefined) ||
     (req.get(HEADER_NAME) ?? undefined);
 
-  if (!token) {
+  if (!token) return null;
+
+  const user = await getUserBySessionToken(token)
+    .select("_id mail role")
+    .lean();
+
+  return user ?? null;
+}
+
+/** Wymaga zalogowania */
+export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
+  const user = await resolveUserFromRequest(req);
+  if (!user) {
     return res.status(401).json({ status: "failed", message: "Not authenticated" });
   }
-
-  const user = await getUserBySessionToken(token).select("_id mail role").lean();
-  if (!user) {
-    return res.status(401).json({ status: "failed", message: "Invalid session" });
-  }
-
   req.currentUser = user;
+  next();
+};
+
+/** Wymaga, aby użytkownik był NIEzalogowany (gość) */
+export const requireGuest = async (req: Request, res: Response, next: NextFunction) => {
+  const user = await resolveUserFromRequest(req);
+  if (user) {
+    // już zalogowany – nie powinien korzystać z tego endpointu
+    return res.status(409).json({ status: "failed", message: "Already authenticated" });
+  }
   next();
 };
 
