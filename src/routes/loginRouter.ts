@@ -10,7 +10,7 @@ const router = express.Router();
  *   - name: Login
  *     description: Endpoints for user login and authentication
  */
-router.use(requireGuest);
+
 /**
  * @openapi
  * /api/v1/login:
@@ -35,7 +35,7 @@ router.use(requireGuest);
  *       403:
  *         description: Incorrect password
  */
-router.route("/").post(login);
+router.route("/").post(requireGuest, login);
 
 /**
  * @openapi
@@ -69,6 +69,6 @@ router.route("/").post(login);
  *       404:
  *         description: User not found
  */
-router.route("/getUser").post(getUser);
+router.route("/getUser").post(requireAuth, getUser);
 
 export default router;

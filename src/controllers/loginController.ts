@@ -88,25 +88,27 @@ export const login = async (req: Request, res: Response) => {
 
 /** POST /api/v1/login/getUser */
 export const getUser = async (req: Request, res: Response) => {
-  const cookieToken = req.cookies?.[COOKIE_NAME] as string | undefined;
-  const headerToken = req.get(HEADER_NAME) ?? undefined;
-  const bodyToken = typeof req.body?.token === "string" ? req.body.token : undefined;
-  const sessionToken: string | undefined = cookieToken ?? (headerToken as string | undefined) ?? bodyToken;
-
-  if (!sessionToken) {
-    return res.status(401).json({ status: "failed", message: "No session token" });
-  }
-
   try {
+    const token =
+      (req.cookies?.[COOKIE_NAME] as string | undefined) ||
+      (req.get(HEADER_NAME) ?? undefined);
+
+    if (!token) {
+      return res.status(401).json({ status: "failed", message: "No session token found" });
+    }
+
     const user = await userModel.findOne(
-      { "authentication.sessionToken": sessionToken },
-      { _id: 1, index: 1, mail: 1, role: 1 }
+      { "authentication.sessionToken": token },
+      { _id: 1, mail: 1, role: 1 }
     ).lean();
 
-    if (!user) return res.status(404).json({ status: "failed", message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ status: "failed", message: "User not found or session expired" });
+    }
+
     return res.status(200).json({ status: "success", data: { user } });
   } catch (error) {
     console.error("Error💥 getUser:", error);
-    return res.sendStatus(500);
+    return res.status(500).json({ status: "failed", message: "Server error while fetching user data" });
   }
 };
