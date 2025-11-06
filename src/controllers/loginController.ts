@@ -69,6 +69,7 @@ export const login = async (req: Request, res: Response) => {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
+      maxAge: 8 * 60 * 60 * 1000, // 8 godzin w milisekundach
     });
 
     const safeUser = {
