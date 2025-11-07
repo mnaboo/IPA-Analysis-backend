@@ -13,7 +13,7 @@ router.use(requireAuth);
  *   post:
  *     tags: [Auth (login / logout / signup)]
  *     summary: Log out current user (invalidate session token and clear cookie)
- *     description: Unieważnia `authentication.sessionToken` w bazie i czyści cookie **MACIEJ-AUTH**.
+ *     description: Unieważnia `authentication.sessionToken` w bazie i czyści cookie **IPA_AUTH**.
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []

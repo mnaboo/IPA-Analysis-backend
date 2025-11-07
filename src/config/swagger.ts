@@ -15,7 +15,7 @@ export function setupSwagger(app: Express) {
       components: {
         securitySchemes: {
           // cookie z sesją
-          cookieAuth: { type: "apiKey", in: "cookie", name: "MACIEJ-AUTH" },
+          cookieAuth: { type: "apiKey", in: "cookie", name: "IPA_AUTH" },
           // fallback nagłówkowy
           sessionToken: { type: "apiKey", in: "header", name: "x-session-token" },
         },
