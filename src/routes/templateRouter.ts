@@ -23,7 +23,7 @@ router.use(requireAuth, requireRole(Role.Admin));
 
 /**
  * @openapi
- * /api/v1/templates:
+ * /api/v1/admin/templates:
  *   post:
  *     tags: [Templates]
  *     summary: Create a new question template
@@ -60,7 +60,7 @@ router.post('/', createTemplateController);
 
 /**
  * @openapi
- * /api/v1/templates:
+ * /api/v1/admin/templates:
  *   get:
  *     tags: [Templates]
  *     summary: Get all templates
@@ -84,7 +84,7 @@ router.get('/', getTemplatesController);
 
 /**
  * @openapi
- * /api/v1/templates/{id}:
+ * /api/v1/admin/templates/{id}:
  *   get:
  *     tags: [Templates]
  *     summary: Get a single template by ID
@@ -104,7 +104,7 @@ router.get('/:id', getTemplateByIdController);
 
 /**
  * @openapi
- * /api/v1/templates/{id}:
+ * /api/v1/admin/templates/{id}:
  *   put:
  *     tags: [Templates]
  *     summary: Update a template by ID
@@ -144,7 +144,7 @@ router.put('/:id', updateTemplateController);
 
 /**
  * @openapi
- * /api/v1/templates/{id}:
+ * /api/v1/admin/templates/{id}:
  *   delete:
  *     tags: [Templates]
  *     summary: Delete a template by ID

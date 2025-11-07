@@ -4,19 +4,13 @@ import { requireGuest } from '../middleware/auth';
 
 const router = express.Router();
 
-/**
- * @swagger
- * tags:
- *   name: SignUp
- *   description: Endpoints for user registration
- */
 router.use(requireGuest);
 /**
  * @swagger
  * /api/v1/signup:
  *   post:
  *     summary: Register a new user
- *     tags: [SignUp]
+ *     tags: [Auth (login / logout / signup)]
  *     requestBody:
  *       required: true
  *       content:

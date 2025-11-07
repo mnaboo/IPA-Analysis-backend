@@ -8,8 +8,8 @@ const router = Router();
 /**
  * @openapi
  * tags:
- *   - name: Admin
- *     description: Admin-only endpoints
+ *   - name: Admin - User Management
+ *     description: Admin-only endpoints for User Management
  */
 
 // Wszystko poniżej tylko dla zalogowanych adminów
@@ -19,7 +19,7 @@ router.use(requireAuth, requireRole(Role.Admin));
  * @openapi
  * /api/v1/admin/users:
  *   get:
- *     tags: [Admin]
+ *     tags: [Admin - User Management]
  *     summary: List users (admin only)
  *     security:
  *       - cookieAuth: []
@@ -46,7 +46,7 @@ router.get('/users', listUsers);
  * @openapi
  * /api/v1/admin/users/{id}:
  *   get:
- *     tags: [Admin]
+ *     tags: [Admin - User Management]
  *     summary: Get single user (admin only)
  *     security:
  *       - cookieAuth: []
@@ -77,7 +77,7 @@ router.get('/users/:id', getUser);
  * @openapi
  * /api/v1/admin/users/{id}/role:
  *   patch:
- *     tags: [Admin]
+ *     tags: [Admin - User Management]
  *     summary: Change user role (admin only)
  *     security:
  *       - cookieAuth: []
@@ -109,7 +109,7 @@ router.patch('/users/:id/role', setUserRole);
  * @openapi
  * /api/v1/admin/users/{id}:
  *   delete:
- *     tags: [Admin]
+ *     tags: [Admin - User Management]
  *     summary: Delete user (admin only)
  *     security:
  *       - cookieAuth: []

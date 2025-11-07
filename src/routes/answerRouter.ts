@@ -9,6 +9,7 @@ import {
 } from '../controllers/answerController';
 
 const router = Router();
+const routerAdmin = Router();
 
 /**
  * @openapi
@@ -56,11 +57,11 @@ router.use(requireAuth);
 router.post('/:testId', requireAuth, submitAnswersController);
 
 // ADMIN ONLY
-router.use(requireAuth, requireRole(Role.Admin));
+routerAdmin.use(requireAuth, requireRole(Role.Admin));
 
 /**
  * @openapi
- * /api/v1/answers/test/{testId}:
+ * /api/v1/admin/answers/test/{testId}:
  *   get:
  *     tags: [Answers]
  *     summary: Get all answers for a given test
@@ -76,11 +77,11 @@ router.use(requireAuth, requireRole(Role.Admin));
  *       200: { description: Answers retrieved }
  *       404: { description: Test not found }
  */
-router.get('/test/:testId', getAnswersByTestController);
+routerAdmin.get('/test/:testId', getAnswersByTestController);
 
 /**
  * @openapi
- * /api/v1/answers/user/{userId}:
+ * /api/v1/admin/answers/user/{userId}:
  *   get:
  *     tags: [Answers]
  *     summary: Get all answers by a user
@@ -96,11 +97,11 @@ router.get('/test/:testId', getAnswersByTestController);
  *       200: { description: Answers retrieved }
  *       404: { description: User not found }
  */
-router.get('/user/:userId', getAnswersByUserController);
+routerAdmin.get('/user/:userId', getAnswersByUserController);
 
 /**
  * @openapi
- * /api/v1/answers/results/{testId}:
+ * /api/v1/admin/answers/results/{testId}:
  *   get:
  *     tags: [Answers]
  *     summary: Get aggregated IPA results for a test
@@ -128,6 +129,7 @@ router.get('/user/:userId', getAnswersByUserController);
  *                     avgPerformance: { type: number }
  *       404: { description: Test not found }
  */
-router.get('/results/:testId', getAggregatedResultsController);
+routerAdmin.get('/results/:testId', getAggregatedResultsController);
 
 export default router;
+export { routerAdmin };

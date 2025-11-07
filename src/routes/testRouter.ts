@@ -9,7 +9,7 @@ import {
 } from '../controllers/testController';
 
 const router = Router();
-
+const routerAdmin = Router();
 /**
  * @openapi
  * tags:
@@ -18,11 +18,11 @@ const router = Router();
  */
 
 // Wszystkie poniższe endpointy wymagają uwierzytelnienia i roli admina
-router.use(requireAuth, requireRole(Role.Admin));
-
+router.use(requireAuth);
+routerAdmin.use(requireAuth, requireRole(Role.Admin));
 /**
  * @openapi
- * /api/v1/tests:
+ * /api/v1/admin/tests:
  *   post:
  *     tags: [Test]
  *     summary: Create a test from template and assign to group
@@ -49,7 +49,7 @@ router.use(requireAuth, requireRole(Role.Admin));
  *       500:
  *         description: Server error
  */
-router.post('/', createTestFromTemplate);
+routerAdmin.post('/', createTestFromTemplate);
 
 /**
  * @openapi
@@ -100,3 +100,4 @@ router.get('/group/:groupId', getTestsForGroup);
 router.get('/:id', getTestByIdController);
 
 export default router;
+export {routerAdmin};

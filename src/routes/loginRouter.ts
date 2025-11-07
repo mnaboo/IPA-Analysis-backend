@@ -7,15 +7,15 @@ const router = express.Router();
 /**
  * @openapi
  * tags:
- *   - name: Login
- *     description: Endpoints for user login and authentication
+ *   - name: Auth (login / logout / signup)
+ *     description: Endpoints for user login, logout and signup
  */
 
 /**
  * @openapi
  * /api/v1/login:
  *   post:
- *     tags: [Login]
+ *     tags: [Auth (login / logout / signup)]
  *     summary: Log in a user
  *     requestBody:
  *       required: true
@@ -41,7 +41,7 @@ router.route("/").post(requireGuest, login);
  * @openapi
  * /api/v1/login/getUser:
  *   post:
- *     tags: [Login]
+ *     tags: [Auth (login / logout / signup)]
  *     summary: Get a user based on session token
  *     description: Reads session from cookie **MACIEJ-AUTH** or header **x-session-token**. Body `token` jest tylko fallbackiem.
  *     security:

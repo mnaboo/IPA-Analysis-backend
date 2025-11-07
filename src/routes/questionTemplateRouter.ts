@@ -22,7 +22,7 @@ router.use(requireAuth, requireRole(Role.Admin));
 
 /**
  * @openapi
- * /api/v1/questions/{templateId}:
+ * /api/v1/admin/questions/{templateId}:
  *   post:
  *     tags: [QuestionTemplates]
  *     summary: Add a closed question to a template
@@ -60,7 +60,7 @@ router.post('/:templateId', addQuestionToTemplate);
 
 /**
  * @openapi
- * /api/v1/questions/{questionId}:
+ * /api/v1/admin/questions/{questionId}:
  *   patch:
  *     tags: [QuestionTemplates]
  *     summary: Update an existing closed question
@@ -95,7 +95,7 @@ router.patch('/:questionId', updateQuestion);
 
 /**
  * @openapi
- * /api/v1/questions/{questionId}:
+ * /api/v1/admin/questions/{questionId}:
  *   delete:
  *     tags: [QuestionTemplates]
  *     summary: Delete a closed question from a template

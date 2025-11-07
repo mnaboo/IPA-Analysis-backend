@@ -5,21 +5,13 @@ import { requireAuth } from "../middleware/auth";
 
 const router = express.Router();
 
-/**
- * @openapi
- * tags:
- *   - name: Logout
- *     description: Endpoint to terminate the current session
- */
-
-// Tylko zalogowani mogą wywołać logout
 router.use(requireAuth);
 
 /**
  * @openapi
  * /api/v1/logout:
  *   post:
- *     tags: [Logout]
+ *     tags: [Auth (login / logout / signup)]
  *     summary: Log out current user (invalidate session token and clear cookie)
  *     description: Unieważnia `authentication.sessionToken` w bazie i czyści cookie **MACIEJ-AUTH**.
  *     security:
