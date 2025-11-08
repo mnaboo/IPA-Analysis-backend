@@ -1,5 +1,5 @@
 import express from "express";
-import { getUser, login } from "../controllers/loginController";
+import { getUser, login, requestPasswordReset, confirmPasswordReset } from "../controllers/loginController";
 import { requireAuth, requireGuest } from "../middleware/auth";
 
 const router = express.Router();
@@ -70,5 +70,68 @@ router.route("/").post(requireGuest, login);
  *         description: User not found
  */
 router.route("/getUser").post(requireAuth, getUser);
+
+/**
+ * @openapi
+ * /api/v1/login/password-reset/request:
+ *   post:
+ *     tags: [Auth (login / logout / signup)]
+ *     summary: Request a password reset code
+ *     description: Sends a 6-digit reset code to the user's email address if the account exists.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - mail
+ *             properties:
+ *               mail:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Reset code sent (or would be sent if account exists)
+ */
+router.post("/password-reset/request", requireGuest, requestPasswordReset);
+
+/**
+ * @openapi
+ * /api/v1/login/password-reset/confirm:
+ *   post:
+ *     tags: [Auth (login / logout / signup)]
+ *     summary: Confirm password reset with code
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - mail
+ *               - code
+ *               - newPassword
+ *             properties:
+ *               mail:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               code:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: NewStrongPassword123
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid or expired code
+ */
+router.post("/password-reset/confirm", requireGuest, confirmPasswordReset);
+
 
 export default router;

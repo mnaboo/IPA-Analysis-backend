@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import userModel from "../models/user";
 import { authentication, random } from "../models/helpers";
 import { COOKIE_NAME, HEADER_NAME } from "../middleware/auth";
+import { sendPasswordResetEmail } from "../config/mailer";
 
 /** GET /api/v1/users — bez dotykania `authentication` */
 export const getAllUsers = async (_req: Request, res: Response) => {
@@ -112,3 +113,126 @@ export const getUser = async (req: Request, res: Response) => {
     return res.status(500).json({ status: "failed", message: "Server error while fetching user data" });
   }
 };
+
+/** POST /api/v1/login/password-reset/request */
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { mail } = req.body as { mail?: string };
+
+    if (typeof mail !== "string") {
+      return res
+        .status(400)
+        .json({ status: "failed", message: "Email is required." });
+    }
+
+    // Generujemy 6-cyfrowy kod
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt =
+      Number(process.env.RESET_CODE_EXPIRES_MINUTES) || 15;
+    const expiryDate = new Date(Date.now() + expiresAt * 60 * 1000);
+
+    const user = await userModel.findOne(
+      { mail },
+      { _id: 1, mail: 1 }
+    ).lean();
+
+    if (user) {
+      // Zapisz kod i datę ważności
+      await userModel.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            "authentication.resetCode": code,
+            "authentication.resetCodeExpiresAt": expiryDate,
+          },
+        }
+      );
+
+      // Wyślij maila
+      await sendPasswordResetEmail(user.mail, code);
+    }
+
+    // Zawsze zwracamy 200 – nie ujawniamy czy mail istnieje
+    return res.status(200).json({
+      status: "success",
+      message:
+        "If an account with this email exists, a reset code has been sent.",
+    });
+  } catch (error) {
+    console.error("Error💥 requestPasswordReset:", error);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Password reset request failed." });
+  }
+};
+
+/** POST /api/v1/login/password-reset/confirm */
+export const confirmPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { mail, code, newPassword } = req.body as {
+      mail?: string;
+      code?: string;
+      newPassword?: string;
+    };
+
+    if (
+      typeof mail !== "string" ||
+      typeof code !== "string" ||
+      typeof newPassword !== "string"
+    ) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Email, code and newPassword are required.",
+      });
+    }
+
+    const now = new Date();
+
+    const user = await userModel.findOne(
+      {
+        mail,
+        "authentication.resetCode": code,
+        "authentication.resetCodeExpiresAt": { $gt: now },
+      },
+      { _id: 1 }
+    );
+
+    if (!user) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Invalid or expired reset code.",
+      });
+    }
+
+    // Hash nowego hasła (tak samo jak przy signup)
+    const salt = random();
+    const hashedPassword = authentication(salt, newPassword);
+
+    await userModel.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          "authentication.password": hashedPassword,
+          "authentication.repeatPassword": hashedPassword,
+          "authentication.salt": salt,
+        },
+        $unset: {
+          "authentication.resetCode": "",
+          "authentication.resetCodeExpiresAt": "",
+          "authentication.sessionToken": "", // 🔐 wyloguj wszystkie sesje
+        },
+      }
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Password has been reset successfully.",
+    });
+  } catch (error) {
+    console.error("Error💥 confirmPasswordReset:", error);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Password reset failed." });
+  }
+};
+
