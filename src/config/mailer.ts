@@ -58,3 +58,30 @@ export async function sendPasswordResetEmail(to: string, code: string) {
     html,
   });
 }
+
+/**
+ * Wysyłka maila z kodem rejestracyjnym.
+ */
+export async function sendRegistrationCodeEmail(to: string, code: string) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn("[mailer] Brak SMTP_USER lub SMTP_PASS – nie wysyłam maila rejestracyjnego:", code);
+    return;
+  }
+
+  const transporter = getTransporter();
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER!;
+  const appName = process.env.APP_NAME || "IPA Analysis";
+  const expiresMinutes = Number(process.env.REGISTRATION_CODE_EXPIRES_MINUTES) || 15;
+
+  const text = `Twój kod aktywacyjny w ${appName} to: ${code}. Kod jest ważny przez ${expiresMinutes} minut.`;
+  const html = `<p>Twój kod aktywacyjny w <b>${appName}</b> to: <b>${code}</b>.</p><p>Kod jest ważny przez ${expiresMinutes} minut.</p>`;
+
+  await transporter.sendMail({
+    from,
+    to,
+    subject: "Aktywacja konta - kod weryfikacyjny",
+    text,
+    html,
+  });
+}
+
