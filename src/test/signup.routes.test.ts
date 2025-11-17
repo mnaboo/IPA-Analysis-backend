@@ -1,7 +1,7 @@
 // src/test/signup.routes.test.ts
 import request from "supertest";
 
-// 1. Mock modeli i zależności
+//Mock modeli i zależności
 
 jest.mock("../models/user", () => {
   const userModelMock = {
@@ -38,7 +38,7 @@ jest.mock("../config/mailer", () => ({
   sendPasswordResetEmail: jest.fn(),
 }));
 
-// requireGuest jest używany w signUpRouter; pozostałe też mockujemy „dla spokoju”
+// requireGuest jest używany w signUpRouter, pozostałe też mockujemy 
 jest.mock("../middleware/auth", () => ({
   __esModule: true,
   COOKIE_NAME: "IPA_AUTH",
@@ -48,7 +48,7 @@ jest.mock("../middleware/auth", () => ({
   requireRole: () => (_req: any, _res: any, next: any) => next(),
 }));
 
-// 2. Dopiero teraz importujemy app i mocki
+// import app, mock
 import app from "../app";
 import userModel, { getUserByEmail } from "../models/user";
 import {
@@ -83,7 +83,6 @@ describe("Signup & verification routes", () => {
       const res = await request(app).post(url).send({
         mail: "123456@stud.prz.edu.pl",
         password: "Test1234",
-        // brak repeatPassword
       });
 
       expect(res.status).toBe(400);

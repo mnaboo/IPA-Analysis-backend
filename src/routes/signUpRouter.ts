@@ -59,7 +59,6 @@ router.post("/request", requestRegistration);
  */
 router.post("/confirm", confirmRegistration);
 
-// Stary endpoint (opcjonalny, można zostawić dla testów)
 router.route("/").post(register);
 
 export default router;

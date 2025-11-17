@@ -1,7 +1,6 @@
 // src/test/answers.routes.test.ts
 import request from "supertest";
 
-// 1. Mock modeli odpowiedzi i testów
 jest.mock("../models/testResponse", () => ({
   __esModule: true,
   default: {},
@@ -22,7 +21,6 @@ jest.mock("../models/test", () => ({
   updateTestById: jest.fn(),
 }));
 
-// 2. Mock middleware auth (używane w answerRouter + innych routerach)
 jest.mock("../middleware/auth", () => {
   const requireAuth = jest.fn((req: any, _res: any, next: any) => {
     // domyślnie udajemy zalogowanego użytkownika

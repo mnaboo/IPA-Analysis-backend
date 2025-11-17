@@ -1,12 +1,6 @@
 // src/test/template.routes.test.ts
 import request from "supertest";
 
-/**
- * 1. Mockujemy models/template – wszystkie helpery jako jest.fn().
- * 2. Mockujemy middleware/auth – requireAuth + requireRole przepuszczają request
- *    i wstrzykują currentUser z rolą admina.
- */
-
 jest.mock("../models/template", () => ({
   __esModule: true,
   default: {},
@@ -36,7 +30,7 @@ jest.mock("../middleware/auth", () => ({
 }));
 
 
-// dopiero teraz importujemy app i zamockowane funkcje z template modelu
+// import app, mock
 import app from "../app";
 import {
   getTemplates,
@@ -105,7 +99,7 @@ describe("Templates admin routes (/api/v1/admin/templates)", () => {
       expect(res.body.data).toEqual(createdTemplate);
 
       expect(createTemplateMock).toHaveBeenCalledWith({
-        name: "My Template", // przycięta nazwa
+        name: "My Template",
         description: "desc",
         closedQuestions: payload.closedQuestions,
         openQuestion: payload.openQuestion,

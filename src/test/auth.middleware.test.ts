@@ -1,7 +1,6 @@
 // src/test/auth.middleware.test.ts
 import { Request, Response, NextFunction } from "express";
 
-// Najpierw mock modułu user
 jest.mock("../models/user", () => ({
   __esModule: true,
   default: {},

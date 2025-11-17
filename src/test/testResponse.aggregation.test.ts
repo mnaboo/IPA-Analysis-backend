@@ -26,7 +26,7 @@ describe("getAveragedResultsForTest (IPA aggregation)", () => {
   });
 
   it("powinien poprawnie policzyć średnie importance i performance", async () => {
-    // 1) Mock odpowiedzi testowych
+    // Mock odpowiedzi testowych
     const responses = [
       {
         closedAnswers: [

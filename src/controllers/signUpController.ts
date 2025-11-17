@@ -48,7 +48,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       authentication: {
         salt,
         password: authentication(salt, password),
-        // UWAGA: najlepiej w ogóle NIE zapisywać repeatPassword w DB.
         repeatPassword: authentication(salt, repeatPassword),
       },
     });

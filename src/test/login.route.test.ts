@@ -2,13 +2,6 @@
 import request from "supertest";
 import { COOKIE_NAME } from "../middleware/auth";
 
-/**
- * Najpierw mockujemy moduły, które są używane w loginController:
- *  - ../models/user
- *  - ../models/helpers
- *  Potem dopiero importujemy app.
- */
-
 jest.mock("../models/user", () => {
   const userModelMock = {
     collection: {
@@ -31,10 +24,9 @@ jest.mock("../models/helpers", () => ({
   random: jest.fn(),
 }));
 
-// 👇 dopiero teraz importujemy app (które wciąga loginController itd.)
+// import logincontrollers etc
 import app from "../app";
 
-// z zamockowanego modułu bierzemy default i funkcje
 import userModelMock from "../models/user";
 import {
   authentication as authenticationMock,
@@ -90,7 +82,7 @@ describe("POST /api/v1/login", () => {
       },
     });
 
-    // hash z podanego hasła ≠ zapisany hash
+    // hash z podanego hasła =/= zapisany hash
     (authenticationMock as jest.Mock).mockReturnValueOnce("wrong-hash");
 
     const res = await request(app).post(url).send({
@@ -122,8 +114,8 @@ describe("POST /api/v1/login", () => {
       },
     });
 
-    // 1. porównanie hasła
-    // 2. generowanie sessionToken
+    // porównanie hasła
+    // generowanie sessionToken
     (authenticationMock as jest.Mock)
       .mockReturnValueOnce("stored-hash")        // hasło OK
       .mockReturnValueOnce("session-token-123"); // token sesji

@@ -1,7 +1,6 @@
 // src/test/login.passwordReset.test.ts
 import request from "supertest";
 
-// Najpierw mockujemy zależności używane w loginController:
 jest.mock("../models/user", () => {
   const userModelMock = {
     findOne: jest.fn(),
@@ -27,7 +26,6 @@ jest.mock("../config/mailer", () => ({
   sendPasswordResetEmail: jest.fn(),
 }));
 
-// dopiero teraz importujemy app i zamockowane moduły
 import app from "../app";
 import userModel from "../models/user";
 import {
@@ -134,7 +132,7 @@ describe("Password reset endpoints", () => {
     });
 
     it("powinien zwrócić 400 gdy reset code jest nieprawidłowy lub wygasł", async () => {
-      // tu nie ma .lean(), więc normalny Promise wystarczy
+      //nie ma .lean(), więc jest normalny promise
       (userModelMock.findOne as jest.Mock).mockResolvedValueOnce(null);
 
       const res = await request(app).post(url).send({

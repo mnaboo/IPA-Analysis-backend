@@ -5,7 +5,7 @@ import { COOKIE_NAME, HEADER_NAME } from "../middleware/auth";
 
 /** POST /api/v1/logout */
 export const logout = async (req: Request, res: Response) => {
-  // 1) Pobierz token tak samo jak w getUser (cookie -> header -> body)
+  //Pobranie tokena tak samo jak w getUser (cookie -> header -> body)
   const cookieToken = req.cookies?.[COOKIE_NAME] as string | undefined;
   const headerToken = req.get(HEADER_NAME) ?? undefined;
   const bodyToken = typeof req.body?.token === "string" ? req.body.token : undefined;
@@ -13,18 +13,15 @@ export const logout = async (req: Request, res: Response) => {
 
   try {
     if (sessionToken) {
-      // 2) Unieważnij sesję w DB
+      // Unieważnia sesję w DB
       await userModel.updateOne(
         { "authentication.sessionToken": sessionToken },
         { $unset: { "authentication.sessionToken": "", "authentication.sessionExpiresAt": "" } }
       );
     }
 
-    // 3) Wyczyść cookie po stronie klienta
-    // (ważne: podaj ten sam `path` co przy ustawianiu)
     res.clearCookie(COOKIE_NAME, {
       path: "/",
-      // poniższe nie są wymagane do czyszczenia, ale nie zaszkodzą w spójności:
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

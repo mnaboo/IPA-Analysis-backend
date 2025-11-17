@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-// pomocniczo: wyciągnij usera z tokenu (cookie/header)
+//user z tokenu (cookie/header)
 async function resolveUserFromRequest(req: Request) {
   const token =
     (req.cookies?.[COOKIE_NAME] as string | undefined) ||
