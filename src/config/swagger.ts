@@ -120,14 +120,29 @@ export function setupSwagger(app: Express) {
 
   const spec = swaggerJsdoc(options);
 
-  app.use(
-    "/api-docs",
-    swaggerUi.serve,
-    swaggerUi.setup(spec, {
-      explorer: true,
-      swaggerOptions: { persistAuthorization: true },
-    })
-  );
+
+//nie pokazuje sie authorize
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(spec, {
+    explorer: true,
+    swaggerOptions: { persistAuthorization: true },
+    customCss: `
+      .swagger-ui .auth-wrapper,
+      .swagger-ui .authorize,
+      .swagger-ui .auth-btn-wrapper,
+      .swagger-ui .opblock-summary-method .authorization__btn,
+      .swagger-ui .authorization__btn {
+        display: none !important;
+      }
+      .swagger-ui .lock-wrapper {
+        display: none !important;
+      }
+    `,
+  })
+);
+
 
   app.get("/api-docs.json", (_req, res) => res.json(spec));
 }
