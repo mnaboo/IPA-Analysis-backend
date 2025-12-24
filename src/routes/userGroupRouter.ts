@@ -17,35 +17,55 @@ router.use(requireAuth);
 /**
  * @openapi
  * /api/v1/groups:
- *   get:
+ *   post:
  *     tags: [Groups]
- *     summary: List all groups (basic info)
+ *     summary: List groups with pagination and optional search by name
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rowPePage, Page]
+ *             properties:
+ *               rowPePage:
+ *                 type: integer
+ *                 example: 10
+ *                 minimum: 1
+ *                 maximum: 100
+ *               Page:
+ *                 type: integer
+ *                 example: 1
+ *                 minimum: 1
+ *               search:
+ *                 type: string
+ *                 example: "Grupa"
+ *                 description: Optional search by group name (prefix match, case-insensitive)
  *     responses:
  *       200:
- *         description: Groups list
+ *         description: Paginated groups list
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status: { type: string, example: "success" }
+ *                 total: { type: integer, example: 17 }
  *                 data:
- *                   type: object
- *                   properties:
- *                     groups:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           _id: { type: string }
- *                           name: { type: string }
- *                           description: { type: string }
- *                           membersCount: { type: number }
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id: { type: string }
+ *                       name: { type: string }
+ *                       description: { type: string }
+ *                       membersCount: { type: number }
+ *                       createdAt: { type: string }
+ *                       updatedAt: { type: string }
  */
-router.get('/', listGroups);
+router.post('/', listGroups);
 
 /**
  * @openapi
