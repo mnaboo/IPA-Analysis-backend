@@ -18,29 +18,47 @@ router.use(requireAuth, requireRole(Role.Admin));
 /**
  * @openapi
  * /api/v1/admin/users:
- *   get:
+ *   post:
  *     tags: [Admin - User Management]
- *     summary: List users (admin only)
+ *     summary: List users with pagination and optional search by index (admin only)
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rowPePage, Page]
+ *             properties:
+ *               rowPePage:
+ *                 type: integer
+ *                 example: 10
+ *                 minimum: 1
+ *                 maximum: 100
+ *               Page:
+ *                 type: integer
+ *                 example: 2
+ *                 minimum: 1
+ *               search:
+ *                 type: string
+ *                 example: "173678"
+ *                 description: Optional search by user index (prefix/exact)
  *     responses:
  *       200:
- *         description: Users list
+ *         description: Paginated users list
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status: { type: string, example: "success" }
+ *                 total: { type: integer, example: 17 }
  *                 data:
- *                   type: object
- *                   properties:
- *                     users:
- *                       type: array
- *                       items: { $ref: '#/components/schemas/User' }
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/User' }
  */
-router.get('/users', listUsers);
+router.post('/users', listUsers);
 
 /**
  * @openapi
@@ -64,7 +82,7 @@ router.get('/users', listUsers);
  *             schema:
  *               type: object
  *               properties:
- *                 status: { type: string }
+ *                 status: { type: string, example: "success" }
  *                 data:
  *                   type: object
  *                   properties:
