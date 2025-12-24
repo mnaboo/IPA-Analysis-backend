@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import { isValidObjectId } from 'mongoose';
 import groupModel from '../models/group';
+import userModel, { Role } from '../models/user';
 
 type Id = string;
 
@@ -145,6 +146,10 @@ export const myGroups = async (req: Request, res: Response) => {
 };
 
 // GET /api/v1/groups/:id
+// WYMAGANIE:
+// - dodać members (lista userów) + isMember
+// - membersCount usunąć
+// - admin widzi listę userów, zwykły user dostaje members: []
 export const getGroup = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: Id };
@@ -158,8 +163,26 @@ export const getGroup = async (req: Request, res: Response) => {
 
     if (!g) return res.status(404).json({ status: 'failed', message: 'Group not found' });
 
-    const uid: Id | undefined = (req as any).currentUser?._id;
-    const isMember = uid ? g.members?.some(m => String(m) === String(uid)) : false;
+    const currentUser = (req as any).currentUser;
+    const uid: Id | undefined = currentUser?._id;
+    const isMember = uid ? (g.members ?? []).some(m => String(m) === String(uid)) : false;
+
+    const isAdmin = currentUser?.role === Role.Admin;
+
+    // members: admin widzi listę userów, user widzi pustą tablicę
+    let members: any[] = [];
+    if (isAdmin) {
+      const memberIds = (g.members ?? []).map(m => String(m));
+      if (memberIds.length) {
+        members = await userModel
+          .find(
+            { _id: { $in: memberIds } },
+            { _id: 1, index: 1, mail: 1, role: 1, createdAt: 1, updatedAt: 1 }
+          )
+          .sort({ index: 1 })
+          .lean();
+      }
+    }
 
     return res.status(200).json({
       status: 'success',
@@ -168,8 +191,7 @@ export const getGroup = async (req: Request, res: Response) => {
           _id: g._id,
           name: g.name,
           description: g.description ?? '',
-          membersCount: Array.isArray(g.members) ? g.members.length : 0,
-          isMember,
+          members,
           tests: (g.tests ?? []).map((t: any) => ({
             test: t.test,
             assignedAt: t.assignedAt,

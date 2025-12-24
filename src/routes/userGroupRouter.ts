@@ -125,7 +125,7 @@ router.post('/me', myGroups);
  * /api/v1/groups/{id}:
  *   get:
  *     tags: [Groups]
- *     summary: Get group details
+ *     summary: Get group details (members list only for admin, empty for normal user)
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []
@@ -137,6 +137,44 @@ router.post('/me', myGroups);
  *     responses:
  *       200:
  *         description: Group details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: "success" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     group:
+ *                       type: object
+ *                       properties:
+ *                         _id: { type: string }
+ *                         name: { type: string }
+ *                         description: { type: string }
+ *                         isMember: { type: boolean }
+ *                         members:
+ *                           type: array
+ *                           description: For admin: list of users. For normal user: empty array.
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               _id: { type: string }
+ *                               index: { type: string }
+ *                               mail: { type: string }
+ *                               role: { type: string }
+ *                               createdAt: { type: string }
+ *                               updatedAt: { type: string }
+ *                         tests:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               test: { type: string }
+ *                               assignedAt: { type: string }
+ *                               dueAt: { type: string, nullable: true }
+ *                         createdAt: { type: string }
+ *                         updatedAt: { type: string }
  *       400:
  *         description: Invalid group id
  *       404:
