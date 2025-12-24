@@ -95,24 +95,40 @@ export const getUser = async (req: Request, res: Response) => {
       (req.get(HEADER_NAME) ?? undefined);
 
     if (!token) {
-      return res.status(401).json({ status: "failed", message: "No session token found" });
+      return res
+        .status(401)
+        .json({ status: "failed", message: "No session token found" });
     }
 
-    const user = await userModel.findOne(
-      { "authentication.sessionToken": token },
-      { _id: 1, mail: 1, role: 1 }
-    ).lean();
+    const user = await userModel
+      .findOne(
+        { "authentication.sessionToken": token },
+        {
+          _id: 1,
+          index: 1,
+          mail: 1,
+          role: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        }
+      )
+      .lean();
 
     if (!user) {
-      return res.status(404).json({ status: "failed", message: "User not found or session expired" });
+      return res
+        .status(404)
+        .json({ status: "failed", message: "User not found or session expired" });
     }
 
     return res.status(200).json({ status: "success", data: { user } });
   } catch (error) {
     console.error("Error💥 getUser:", error);
-    return res.status(500).json({ status: "failed", message: "Server error while fetching user data" });
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Server error while fetching user data" });
   }
 };
+
 
 /** POST /api/v1/login/password-reset/request */
 export const requestPasswordReset = async (req: Request, res: Response) => {
