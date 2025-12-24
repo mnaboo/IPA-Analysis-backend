@@ -1,12 +1,13 @@
 // src/controllers/templateController.ts
 import { Request, Response } from "express";
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, Types } from "mongoose";
 import templateModel, {
   createTemplate,
   deleteTemplateById,
   getTemplateById,
   updateTemplateById,
 } from "../models/template";
+import userModel from "../models/user";
 
 // POST /api/v1/templates
 export const createTemplateController = async (req: Request, res: Response) => {
@@ -79,43 +80,16 @@ export const deleteTemplateController = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * LIST TEMPLATES with pagination + search by name
- *
- * POST /api/v1/templates/list
- * Body:
- * {
- *   "rowPePage": 10,
- *   "Page": 1,
- *   "search": "ABC"
- * }
- *
- * Response:
- * {
- *   "total": 17,
- *   "data": [...]
- * }
- */
+// POST /api/v1/admin/templates/list
 export const getTemplatesController = async (req: Request, res: Response) => {
   try {
-    const rowPePageRaw = req.body?.rowPePage;
-    const pageRaw = req.body?.Page;
-    const searchRaw = req.body?.search;
-
-    const rowPePage = Math.min(Math.max(parseInt(String(rowPePageRaw ?? "10"), 10) || 10, 1), 100);
-    const Page = Math.max(parseInt(String(pageRaw ?? "1"), 10) || 1, 1);
+    const rowPePage = Math.min(Math.max(parseInt(String(req.body?.rowPePage ?? "10"), 10) || 10, 1), 100);
+    const Page = Math.max(parseInt(String(req.body?.Page ?? "1"), 10) || 1, 1);
     const skip = (Page - 1) * rowPePage;
+    const search = String(req.body?.search ?? "").trim();
 
-    const search = String(searchRaw ?? "").trim();
-
-    const filter: Record<string, any> = {};
-    if (search) {
-      // prefix search po name (case-insensitive)
-      filter.name = { $regex: `^${escapeRegex(search)}`, $options: "i" };
-
-      // jeśli chcesz "contains", zamień na:
-      // filter.name = { $regex: escapeRegex(search), $options: "i" };
-    }
+    const filter: any = {};
+    if (search) filter.name = { $regex: `^${escapeRegex(search)}`, $options: "i" };
 
     const projection = {
       _id: 1,
@@ -128,15 +102,20 @@ export const getTemplatesController = async (req: Request, res: Response) => {
       updatedAt: 1,
     };
 
-    const [data, total] = await Promise.all([
-      templateModel
-        .find(filter, projection)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(rowPePage)
-        .lean(),
+    const [templates, total] = await Promise.all([
+      templateModel.find(filter, projection).sort({ createdAt: -1 }).skip(skip).limit(rowPePage).lean(),
       templateModel.countDocuments(filter),
     ]);
+
+    // 🔹 Pobierz userów tworzących template’y
+    const userIds = [...new Set(templates.map(t => String(t.createdBy)).filter(Boolean))];
+    const users = await userModel.find({ _id: { $in: userIds } }, { _id: 1, index: 1 }).lean();
+    const userMap = new Map(users.map(u => [String(u._id), u.index]));
+
+    const data = templates.map(t => ({
+      ...t,
+      createdByIndex: t.createdBy ? userMap.get(String(t.createdBy)) ?? null : null,
+    }));
 
     return res.status(200).json({ total, data });
   } catch (err) {
@@ -167,7 +146,6 @@ export const getTemplateByIdController = async (req: Request, res: Response) => 
   }
 };
 
-// --- helpers ---
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
