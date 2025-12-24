@@ -60,27 +60,50 @@ router.post('/', createTemplateController);
 
 /**
  * @openapi
- * /api/v1/admin/templates:
- *   get:
+ * /api/v1/admin/templates/list:
+ *   post:
  *     tags: [Templates]
- *     summary: Get all templates
+ *     summary: List templates with pagination and optional search by name
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rowPePage, Page]
+ *             properties:
+ *               rowPePage:
+ *                 type: integer
+ *                 example: 10
+ *                 minimum: 1
+ *                 maximum: 100
+ *               Page:
+ *                 type: integer
+ *                 example: 1
+ *                 minimum: 1
+ *               search:
+ *                 type: string
+ *                 example: "ABC"
+ *                 description: Optional search by template name (prefix match, case-insensitive)
  *     responses:
  *       200:
- *         description: List of templates
+ *         description: Paginated templates list
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status: { type: string }
+ *                 total:
+ *                   type: integer
+ *                   example: 17
  *                 data:
  *                   type: array
  *                   items: { $ref: '#/components/schemas/Template' }
  */
-router.get('/', getTemplatesController);
+router.post('/list', getTemplatesController);
 
 /**
  * @openapi
@@ -98,6 +121,7 @@ router.get('/', getTemplatesController);
  *         schema: { type: string }
  *     responses:
  *       200: { description: Template found }
+ *       400: { description: Invalid template id }
  *       404: { description: Template not found }
  */
 router.get('/:id', getTemplateByIdController);
@@ -138,6 +162,7 @@ router.get('/:id', getTemplateByIdController);
  *                   text: { type: string }
  *     responses:
  *       200: { description: Template updated }
+ *       400: { description: Invalid template id }
  *       404: { description: Template not found }
  */
 router.put('/:id', updateTemplateController);
@@ -158,6 +183,7 @@ router.put('/:id', updateTemplateController);
  *         schema: { type: string }
  *     responses:
  *       204: { description: Template deleted successfully }
+ *       400: { description: Invalid template id }
  *       404: { description: Template not found }
  */
 router.delete('/:id', deleteTemplateController);

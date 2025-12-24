@@ -6,7 +6,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { mail, password, repeatPassword } = req.body;
 
-    // 🚫 Blokada nadawania roli przez request (szczególnie "admin")
+    // Blokada nadawania roli przez request (szczególnie "admin")
     if (typeof req.body.role !== 'undefined') {
       if (String(req.body.role).toLowerCase() === 'admin') {
         res.status(403).json({ status: 'failed', message: 'Nie można utworzyć konta admin przez rejestrację.' });
@@ -44,7 +44,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const userDoc = await userModel.create({
       index,
       mail,
-      role: 'user', // 🔒 wymuszamy zwykłą rolę
+      role: 'user', // wymuszamy zwykłą rolę
       authentication: {
         salt,
         password: authentication(salt, password),

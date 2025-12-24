@@ -11,7 +11,7 @@ import groupRouter from "./routes/userGroupRouter";              // USER (grupy)
 import adminGroupsRouter from "./routes/adminGroupRouter";       // ADMIN (grupy)
 import templateRouter from "./routes/templateRouter";            // Template CRUD
 import testRouter, {routerAdmin as testAdminRouter}from "./routes/testRouter";                    // Testy z szablonów
-import questionTemplateRouter from "./routes/questionTemplateRouter";  // ⬅️ Pytania do szablonów
+import questionTemplateRouter from "./routes/questionTemplateRouter";  // Pytania do szablonów
 import answerRouter, {routerAdmin as answersAdminRouter} from "./routes/answerRouter";                // Odpowiedzi / IPA
 
 // Swagger
