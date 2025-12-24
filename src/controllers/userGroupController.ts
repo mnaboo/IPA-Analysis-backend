@@ -73,15 +73,71 @@ export const listGroups = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/v1/groups/me
+/**
+ * MY GROUPS with pagination + search by name
+ * Expected body:
+ * {
+ *   "rowPePage": 10,
+ *   "Page": 1,
+ *   "search": "Grupa"
+ * }
+ *
+ * Response:
+ * {
+ *   "total": 5,
+ *   "data": [...]
+ * }
+ *
+ * IMPORTANT:
+ * Use POST on the router for this endpoint if you want body reliably.
+ */
+// POST /api/v1/groups/me
 export const myGroups = async (req: Request, res: Response) => {
   try {
     const uid: Id = (req as any).currentUser?._id;
-    const groups = await groupModel
-      .find({ members: uid }, { _id: 1, name: 1, description: 1, createdAt: 1, updatedAt: 1 })
-      .lean();
 
-    return res.status(200).json({ status: 'success', data: { groups } });
+    const rowPePageRaw = req.body?.rowPePage;
+    const pageRaw = req.body?.Page;
+    const searchRaw = req.body?.search;
+
+    const rowPePage = Math.min(Math.max(parseInt(String(rowPePageRaw ?? '10'), 10) || 10, 1), 100);
+    const Page = Math.max(parseInt(String(pageRaw ?? '1'), 10) || 1, 1);
+    const skip = (Page - 1) * rowPePage;
+
+    const search = String(searchRaw ?? '').trim();
+
+    const filter: Record<string, any> = { members: uid };
+
+    if (search) {
+      // prefix search po name (case-insensitive)
+      filter.name = { $regex: `^${escapeRegex(search)}`, $options: 'i' };
+
+      // jeśli chcesz "contains", zamień na:
+      // filter.name = { $regex: escapeRegex(search), $options: 'i' };
+    }
+
+    const projection = { _id: 1, name: 1, description: 1, members: 1, createdAt: 1, updatedAt: 1 };
+
+    const [groups, total] = await Promise.all([
+      groupModel
+        .find(filter, projection)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(rowPePage)
+        .lean(),
+      groupModel.countDocuments(filter),
+    ]);
+
+    const data = groups.map(g => ({
+      _id: g._id,
+      name: g.name,
+      description: g.description ?? '',
+      membersCount: Array.isArray(g.members) ? g.members.length : 0,
+      createdAt: g.createdAt,
+      updatedAt: g.updatedAt,
+    }));
+
+    return res.status(200).json({ total, data });
   } catch (err) {
     console.error('Error💥 myGroups:', err);
     return res.status(500).json({ status: 'failed', message: 'myGroups error' });

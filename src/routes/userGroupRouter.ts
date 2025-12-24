@@ -70,17 +70,55 @@ router.post('/', listGroups);
 /**
  * @openapi
  * /api/v1/groups/me:
- *   get:
+ *   post:
  *     tags: [Groups]
- *     summary: List groups the current user belongs to
+ *     summary: List groups the current user belongs to (pagination + optional search by name)
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rowPePage, Page]
+ *             properties:
+ *               rowPePage:
+ *                 type: integer
+ *                 example: 10
+ *                 minimum: 1
+ *                 maximum: 100
+ *               Page:
+ *                 type: integer
+ *                 example: 1
+ *                 minimum: 1
+ *               search:
+ *                 type: string
+ *                 example: "Grupa"
+ *                 description: Optional search by group name (prefix match, case-insensitive)
  *     responses:
  *       200:
- *         description: My groups
+ *         description: Paginated my groups list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total: { type: integer, example: 5 }
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id: { type: string }
+ *                       name: { type: string }
+ *                       description: { type: string }
+ *                       membersCount: { type: number }
+ *                       createdAt: { type: string }
+ *                       updatedAt: { type: string }
  */
-router.get('/me', myGroups);
+router.post('/me', myGroups);
 
 /**
  * @openapi
