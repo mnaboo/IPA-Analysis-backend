@@ -155,7 +155,7 @@ router.post('/me', myGroups);
  *                         isMember: { type: boolean }
  *                         members:
  *                           type: array
- *                           description: For admin: list of users. For normal user: empty array.
+ *                           description: "For admin: list of users. For normal user: empty array."
  *                           items:
  *                             type: object
  *                             properties:
