@@ -234,20 +234,27 @@ export const deleteTestController = async (req: Request, res: Response) => {
       return res.status(404).json({ status: "fail", message: "Group not found" });
     }
 
-    // usuń przypisanie testu z grupy (obsługa obu formatów tests[]: ObjectId oraz { test: ObjectId, ... })
+    // usuń przypisanie testu z grupy
     await Promise.all([
       groupModel.updateOne({ _id: groupId }, { $pull: { tests: { test: id } } }),
       groupModel.updateOne({ _id: groupId }, { $pull: { tests: id } }),
     ]);
 
-    // usuń test z kolekcji Test
     const deleted = await deleteTestById(id);
 
     if (!deleted) {
       return res.status(404).json({ status: "fail", message: "Test not found" });
     }
 
-    return res.status(204).send();
+    return res.status(200).json({
+      status: "success",
+      message: "Test deleted and unassigned from group",
+      data: {
+        _id: deleted._id,
+        name: deleted.name,
+        groupId,
+      },
+    });
   } catch (err) {
     console.error("deleteTest error:", err);
     return res.status(500).json({ status: "error", message: "Test deletion failed" });
