@@ -1,29 +1,56 @@
 // src/models/test.ts
 import mongoose from 'mongoose';
 
-const testSchema = new mongoose.Schema({
-  name:        { type: String, required: true, trim: true },
-  description: { type: String, default: '' },
+const testSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    description: { type: String, default: '' },
 
-  template: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Template',
-    required: true,
+    template: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Template',
+      required: true,
+    },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+
+    // 🔹 NOWE POLA
+    startsAt: {
+      type: Date,
+      required: true,
+    },
+
+    endsAt: {
+      type: Date,
+      required: true,
+      validate: {
+        validator: function (this: any, v: Date) {
+          return !this.startsAt || v > this.startsAt;
+        },
+        message: 'endsAt must be later than startsAt',
+      },
+    },
+
+    createdAt: { type: Date, default: Date.now },
+    active: { type: Boolean, default: true },
   },
+  {
+    timestamps: false, // masz własne createdAt
+  }
+);
 
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-
-  createdAt: { type: Date, default: Date.now },
-  active:    { type: Boolean, default: true },
-});
-
+// Indeksy
 testSchema.index({ name: 1 });
 testSchema.index({ template: 1 });
+testSchema.index({ startsAt: 1 });
+testSchema.index({ endsAt: 1 });
+testSchema.index({ active: 1 });
 
+// Model
 const testModel = mongoose.model('Test', testSchema);
 
 export default testModel;
