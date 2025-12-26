@@ -2,7 +2,7 @@
 import { Request, Response } from "express";
 import { isValidObjectId } from "mongoose";
 
-import {
+import testModel, {
   createTest,
   deleteTestById,
   getTestById,
@@ -19,6 +19,10 @@ function parseDateOrNull(v: any): Date | null {
   if (!v) return null;
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -54,14 +58,18 @@ export const createTestFromTemplate = async (req: Request, res: Response) => {
     const s = parseDateOrNull(startsAt);
     const e = parseDateOrNull(endsAt);
 
-    if (!s) return res.status(400).json({ status: "failed", message: "startsAt is required and must be a valid date" });
-    if (!e) return res.status(400).json({ status: "failed", message: "endsAt is required and must be a valid date" });
-    if (e <= s) return res.status(400).json({ status: "failed", message: "endsAt must be later than startsAt" });
+    if (!s)
+      return res
+        .status(400)
+        .json({ status: "failed", message: "startsAt is required and must be a valid date" });
+    if (!e)
+      return res
+        .status(400)
+        .json({ status: "failed", message: "endsAt is required and must be a valid date" });
+    if (e <= s)
+      return res.status(400).json({ status: "failed", message: "endsAt must be later than startsAt" });
 
-    const [template, group] = await Promise.all([
-      getTemplateById(templateId),
-      getGroupById(groupId),
-    ]);
+    const [template, group] = await Promise.all([getTemplateById(templateId), getGroupById(groupId)]);
 
     if (!template) {
       return res.status(404).json({ status: "fail", message: "Template not found" });
@@ -211,7 +219,6 @@ export const updateTestController = async (req: Request, res: Response) => {
   }
 };
 
-
 /**
  * DELETE /api/v1/tests/:id/group/:groupId
  * Delete test AND remove its assignment from the given group.
@@ -258,5 +265,72 @@ export const deleteTestController = async (req: Request, res: Response) => {
   } catch (err) {
     console.error("deleteTest error:", err);
     return res.status(500).json({ status: "error", message: "Test deletion failed" });
+  }
+};
+
+/**
+ * POST /api/v1/admin/tests/list
+ * List ALL tests with pagination + optional search by name
+ *
+ * Body:
+ * {
+ *   "rowPePage": 10,
+ *   "Page": 1,
+ *   "search": "Test"   // optional
+ * }
+ *
+ * Response:
+ * {
+ *   "total": 17,
+ *   "data": [...]
+ * }
+ */
+export const listTestsController = async (req: Request, res: Response) => {
+  try {
+    const rowPePageRaw = req.body?.rowPePage;
+    const pageRaw = req.body?.Page;
+    const searchRaw = req.body?.search;
+
+    const rowPePage = Math.min(Math.max(parseInt(String(rowPePageRaw ?? "10"), 10) || 10, 1), 100);
+    const Page = Math.max(parseInt(String(pageRaw ?? "1"), 10) || 1, 1);
+    const skip = (Page - 1) * rowPePage;
+
+    const search = String(searchRaw ?? "").trim();
+
+    const filter: Record<string, any> = {};
+    if (search) {
+      // prefix search (case-insensitive)
+      filter.name = { $regex: `^${escapeRegex(search)}`, $options: "i" };
+
+      // jeśli chcesz "contains", zamień na:
+      // filter.name = { $regex: escapeRegex(search), $options: "i" };
+    }
+
+    const projection = {
+      _id: 1,
+      name: 1,
+      description: 1,
+      template: 1,
+      createdBy: 1,
+      startsAt: 1,
+      endsAt: 1,
+      active: 1,
+      createdAt: 1,
+    };
+
+    const [data, total] = await Promise.all([
+      testModel
+        .find(filter, projection)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(rowPePage)
+        .lean(),
+      testModel.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({ total, data });
+  } catch (err) {
+    console.error("listTests error:", err);
+    return res.status(500).json({ status: "error", message: "Fetching tests failed" });
   }
 };

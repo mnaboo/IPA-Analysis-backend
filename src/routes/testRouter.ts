@@ -1,6 +1,7 @@
-import { Router } from 'express';
-import { requireAuth, requireRole } from '../middleware/auth';
-import { Role } from '../models/user';
+// src/routes/testRouter.ts
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { Role } from "../models/user";
 
 import {
   createTestFromTemplate,
@@ -8,7 +9,8 @@ import {
   getTestByIdController,
   updateTestController,
   deleteTestController,
-} from '../controllers/testController';
+  listTestsController,
+} from "../controllers/testController";
 
 const router = Router();
 const routerAdmin = Router();
@@ -62,7 +64,64 @@ routerAdmin.use(requireAuth, requireRole(Role.Admin));
  *       404: { description: Template or group not found }
  *       500: { description: Server error }
  */
-routerAdmin.post('/', createTestFromTemplate);
+routerAdmin.post("/", createTestFromTemplate);
+
+/**
+ * @openapi
+ * /api/v1/admin/tests/list:
+ *   post:
+ *     tags: [Test]
+ *     summary: List all tests with pagination and optional search (admin)
+ *     security:
+ *       - cookieAuth: []
+ *       - sessionToken: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rowPePage, Page]
+ *             properties:
+ *               rowPePage:
+ *                 type: integer
+ *                 example: 10
+ *                 minimum: 1
+ *                 maximum: 100
+ *               Page:
+ *                 type: integer
+ *                 example: 1
+ *                 minimum: 1
+ *               search:
+ *                 type: string
+ *                 example: "Test"
+ *                 description: Optional prefix search by test name (case-insensitive)
+ *     responses:
+ *       200:
+ *         description: Paginated tests list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total: { type: integer, example: 17 }
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id: { type: string }
+ *                       name: { type: string }
+ *                       description: { type: string }
+ *                       template: { type: string }
+ *                       createdBy: { type: string }
+ *                       startsAt: { type: string, format: date-time }
+ *                       endsAt: { type: string, format: date-time }
+ *                       active: { type: boolean }
+ *                       createdAt: { type: string, format: date-time }
+ *       500: { description: Server error }
+ */
+routerAdmin.post("/list", listTestsController);
 
 /**
  * @openapi
@@ -100,7 +159,7 @@ routerAdmin.post('/', createTestFromTemplate);
  *       404: { description: Test not found }
  *       500: { description: Server error }
  */
-routerAdmin.patch('/:id', updateTestController);
+routerAdmin.patch("/:id", updateTestController);
 
 /**
  * @openapi
@@ -121,12 +180,26 @@ routerAdmin.patch('/:id', updateTestController);
  *         required: true
  *         schema: { type: string }
  *     responses:
- *       204: { description: Deleted }
+ *       200:
+ *         description: Deleted and unassigned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: "success" }
+ *                 message: { type: string, example: "Test deleted and unassigned from group" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id: { type: string }
+ *                     name: { type: string }
+ *                     groupId: { type: string }
  *       400: { description: Invalid id / groupId }
  *       404: { description: Group or test not found }
  *       500: { description: Server error }
  */
-routerAdmin.delete('/:id/group/:groupId', deleteTestController);
+routerAdmin.delete("/:id/group/:groupId", deleteTestController);
 
 /**
  * @openapi
@@ -148,7 +221,7 @@ routerAdmin.delete('/:id/group/:groupId', deleteTestController);
  *       404: { description: Group not found or has no tests }
  *       500: { description: Server error }
  */
-router.get('/group/:groupId', getTestsForGroup);
+router.get("/group/:groupId", getTestsForGroup);
 
 /**
  * @openapi
@@ -170,7 +243,7 @@ router.get('/group/:groupId', getTestsForGroup);
  *       404: { description: Test not found }
  *       500: { description: Server error }
  */
-router.get('/:id', getTestByIdController);
+router.get("/:id", getTestByIdController);
 
 export default router;
 export { routerAdmin };
