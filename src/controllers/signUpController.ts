@@ -2,17 +2,16 @@ import userModel, { getUserByEmail } from '../models/user';
 import { Request, Response } from 'express';
 import { authentication, random } from '../models/helpers';
 
+const STUDENT_DOMAIN = '@stud.prz.edu.pl';
+const ADMIN_DOMAIN = '@prz.edu.pl';
+
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { mail, password, repeatPassword } = req.body;
 
-    // Blokada nadawania roli przez request (szczególnie "admin")
+    // Blokada nadawania roli przez request
     if (typeof req.body.role !== 'undefined') {
-      if (String(req.body.role).toLowerCase() === 'admin') {
-        res.status(403).json({ status: 'failed', message: 'Nie można utworzyć konta admin przez rejestrację.' });
-        return;
-      }
-      // nawet jeśli podano inną rolę, ignorujemy ją
+      // ignorujemy każdą próbę nadania roli z requesta (w szczególności admin)
       delete req.body.role;
     }
 
@@ -26,15 +25,33 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // 6 cyfr przed @ i domena stud.prz.edu.pl
-    const indexMatch = mail.match(/^(\d{6})@stud\.prz\.edu\.pl$/);
-    if (!indexMatch) {
-      res.status(400).send({ status: 'failed', message: 'Email must be in format 123456@stud.prz.edu.pl' });
+    const mailNorm = String(mail).trim().toLowerCase();
+
+    // Musi zawierać jedno "@"
+    const parts = mailNorm.split('@');
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      res.status(400).send({ status: 'failed', message: 'Invalid email format' });
       return;
     }
-    const index = indexMatch[1];
 
-    const existingUser = await getUserByEmail(mail);
+    // index zawsze = wszystko przed "@"
+    const index = parts[0];
+
+    // rola zależna od domeny
+    let role: 'user' | 'admin';
+    if (mailNorm.endsWith(ADMIN_DOMAIN)) {
+      role = 'admin';
+    } else if (mailNorm.endsWith(STUDENT_DOMAIN)) {
+      role = 'user';
+    } else {
+      res.status(400).send({
+        status: 'failed',
+        message: `Email must be in domain ${STUDENT_DOMAIN} (student) or ${ADMIN_DOMAIN} (admin)`,
+      });
+      return;
+    }
+
+    const existingUser = await getUserByEmail(mailNorm);
     if (existingUser) {
       res.status(400).send({ status: 'failed', message: 'User with this email already exists' });
       return;
@@ -43,8 +60,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const salt = random();
     const userDoc = await userModel.create({
       index,
-      mail,
-      role: 'user', // wymuszamy zwykłą rolę
+      mail: mailNorm,
+      role, // admin albo user zależnie od domeny
       authentication: {
         salt,
         password: authentication(salt, password),
