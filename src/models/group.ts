@@ -1,30 +1,50 @@
 // src/models/group.ts
 import mongoose from 'mongoose';
 
-const groupSchema = new mongoose.Schema({
-  name:        { type: String, required: true, trim: true },
-  description: { type: String, default: '' },
+const groupTestSchema = new mongoose.Schema(
+  {
+    test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
 
-  // członkowie grupy (użytkownicy)
-  members:     [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true }],
-
-  // przypisane testy do rozwiązania przez grupę
-  tests: [{
-    test:       { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
     assignedAt: { type: Date, default: Date.now },
-    dueAt:      { type: Date, default: null },
-  }],
 
-  // kto utworzył (admin)
-  createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-}, { timestamps: true });
+    // OKNO CZASOWE PRZYPISANIA (per grupa)
+    startsAt: { type: Date, required: true },
+    endsAt: {
+      type: Date,
+      required: true,
+      validate: {
+        validator: function (this: any, v: Date) {
+          return !this.startsAt || v > this.startsAt;
+        },
+        message: 'endsAt must be later than startsAt',
+      },
+    },
+  },
+  { _id: true }
+);
+
+const groupSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    description: { type: String, default: '' },
+
+    members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true }],
+
+    tests: [groupTestSchema],
+
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  },
+  { timestamps: true }
+);
 
 groupSchema.index({ 'tests.test': 1 });
-groupSchema.index({ name: 1 }); // nie unikalny, ale przydatny do wyszukiwania
+groupSchema.index({ 'tests.startsAt': 1 });
+groupSchema.index({ 'tests.endsAt': 1 });
+groupSchema.index({ name: 1 });
 
 const groupModel = mongoose.model('Group', groupSchema);
-
 export default groupModel;
+
 
 // Helpers – taki sam styl jak w user.ts
 export const getGroups = () => groupModel.find();
@@ -42,12 +62,10 @@ export const removeMemberFromGroup = (groupId: string, userId: string) =>
   groupModel.updateOne({ _id: groupId }, { $pull: { members: userId } });
 
 // testy przypięte do grupy
-export const assignTestToGroup = (groupId: string, testId: string, dueAt?: Date) =>
+export const assignTestToGroup = (groupId: string, testId: string) =>
   groupModel.updateOne(
     { _id: groupId },
-    {
-      $pull: { tests: { test: testId } }, // usuń ewentualny duplikat
-    }
+    { $pull: { tests: { test: testId } } }
   ).then(() =>
     groupModel.updateOne(
       { _id: groupId },
@@ -56,12 +74,12 @@ export const assignTestToGroup = (groupId: string, testId: string, dueAt?: Date)
           tests: {
             test: testId,
             assignedAt: new Date(),
-            dueAt: dueAt ?? null,
           },
         },
       }
     )
   );
+
 
 export const unassignTestFromGroup = (groupId: string, testId: string) =>
   groupModel.updateOne({ _id: groupId }, { $pull: { tests: { test: testId } } });

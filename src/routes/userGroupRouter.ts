@@ -61,9 +61,10 @@ router.use(requireAuth);
  *                       _id: { type: string }
  *                       name: { type: string }
  *                       description: { type: string }
- *                       membersCount: { type: number }
- *                       createdAt: { type: string }
- *                       updatedAt: { type: string }
+ *                       isMember: { type: boolean, example: false }
+ *                       membersCount: { type: number, example: 12 }
+ *                       createdAt: { type: string, format: date-time }
+ *                       updatedAt: { type: string, format: date-time }
  */
 router.post('/', listGroups);
 
@@ -114,9 +115,10 @@ router.post('/', listGroups);
  *                       _id: { type: string }
  *                       name: { type: string }
  *                       description: { type: string }
- *                       membersCount: { type: number }
- *                       createdAt: { type: string }
- *                       updatedAt: { type: string }
+ *                       isMember: { type: boolean, example: true }
+ *                       membersCount: { type: number, example: 12 }
+ *                       createdAt: { type: string, format: date-time }
+ *                       updatedAt: { type: string, format: date-time }
  */
 router.post('/me', myGroups);
 
@@ -125,7 +127,7 @@ router.post('/me', myGroups);
  * /api/v1/groups/{id}:
  *   get:
  *     tags: [Groups]
- *     summary: Get group details (members list only for admin, empty for normal user)
+ *     summary: Get group details (members list only for admin; normal user gets empty members array)
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []
@@ -163,18 +165,18 @@ router.post('/me', myGroups);
  *                               index: { type: string }
  *                               mail: { type: string }
  *                               role: { type: string }
- *                               createdAt: { type: string }
- *                               updatedAt: { type: string }
  *                         tests:
  *                           type: array
+ *                           description: "Tests assigned to this group (assignment metadata + time window)"
  *                           items:
  *                             type: object
  *                             properties:
- *                               test: { type: string }
- *                               assignedAt: { type: string }
- *                               dueAt: { type: string, nullable: true }
- *                         createdAt: { type: string }
- *                         updatedAt: { type: string }
+ *                               testId: { type: string, example: "695c2a502ed1b8f9e3776e31" }
+ *                               assignedAt: { type: string, format: date-time }
+ *                               startsAt: { type: string, format: date-time, nullable: true }
+ *                               endsAt: { type: string, format: date-time, nullable: true }
+ *                         createdAt: { type: string, format: date-time }
+ *                         updatedAt: { type: string, format: date-time }
  *       400:
  *         description: Invalid group id
  *       404:
@@ -187,7 +189,7 @@ router.get('/:id', getGroup);
  * /api/v1/groups/{id}/join:
  *   post:
  *     tags: [Groups]
- *     summary: Join a group
+ *     summary: Join a group (idempotent)
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []
@@ -198,7 +200,7 @@ router.get('/:id', getGroup);
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Joined (idempotent)
+ *         description: Joined (or already a member)
  *       400:
  *         description: Invalid group id
  *       404:
@@ -211,7 +213,7 @@ router.post('/:id/join', joinGroup);
  * /api/v1/groups/{id}/leave:
  *   post:
  *     tags: [Groups]
- *     summary: Leave a group
+ *     summary: Leave a group (idempotent)
  *     security:
  *       - cookieAuth: []
  *       - sessionToken: []
@@ -222,7 +224,7 @@ router.post('/:id/join', joinGroup);
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Left (idempotent)
+ *         description: Left (or not a member)
  *       400:
  *         description: Invalid group id
  *       404:

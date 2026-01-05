@@ -18,7 +18,6 @@ const testSchema = new mongoose.Schema(
       required: true,
     },
 
-    // 🔹 NOWE POLA
     startsAt: {
       type: Date,
       required: true,

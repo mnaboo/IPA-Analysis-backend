@@ -7,7 +7,10 @@ import {
   deleteGroup,
   assignTest,
   unassignTest,
-} from '../controllers/adminGroupController';
+  // jeśli masz:
+  // adminListGroups,
+  // adminGetGroup,
+} from '../controllers/adminGroupController'; 
 
 const router = express.Router();
 
@@ -15,7 +18,7 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: AdminGroups
- *   description: Admin endpoints for managing groups and assignments
+ *   description: Admin endpoints for managing groups and test assignments
  */
 
 // Wszystko poniżej tylko dla zalogowanych adminów
@@ -36,8 +39,7 @@ router.use(requireAuth, requireRole(Role.Admin));
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - name
+ *             required: [name]
  *             properties:
  *               name:
  *                 type: string
@@ -120,7 +122,7 @@ router.delete('/:id', deleteGroup);
  * @swagger
  * /api/v1/admin/groups/{id}/tests:
  *   post:
- *     summary: Assign a test to group
+ *     summary: Assign a test to group with assignment window (startsAt/endsAt)
  *     tags: [AdminGroups]
  *     security:
  *       - cookieAuth: []
@@ -137,21 +139,24 @@ router.delete('/:id', deleteGroup);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - testId
+ *             required: [testId, startsAt, endsAt]
  *             properties:
  *               testId:
  *                 type: string
  *                 example: 66d3f1a5e1b2c3d4a5f6b789
- *               dueAt:
+ *               startsAt:
  *                 type: string
  *                 format: date-time
- *                 example: 2025-09-30T23:59:00.000Z
+ *                 example: 2026-01-10T10:00:00.000Z
+ *               endsAt:
+ *                 type: string
+ *                 format: date-time
+ *                 example: 2026-01-10T12:00:00.000Z
  *     responses:
  *       200:
  *         description: Test assigned
  *       400:
- *         description: Invalid ids or invalid dueAt date
+ *         description: Invalid ids or invalid startsAt/endsAt
  *       404:
  *         description: Group not found
  */
