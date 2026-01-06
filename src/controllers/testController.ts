@@ -25,6 +25,12 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// To jest klucz: co zwracasz z populate
+const TEMPLATE_POPULATE = {
+  path: "template",
+  select: "_id name description closedQuestions openQuestion createdBy createdAt updatedAt",
+} as const;
+
 /**
  * POST /api/v1/tests
  * Create a new test from a template and assign it to a group
@@ -58,16 +64,19 @@ export const createTestFromTemplate = async (req: Request, res: Response) => {
     const s = parseDateOrNull(startsAt);
     const e = parseDateOrNull(endsAt);
 
-    if (!s)
+    if (!s) {
       return res
         .status(400)
         .json({ status: "failed", message: "startsAt is required and must be a valid date" });
-    if (!e)
+    }
+    if (!e) {
       return res
         .status(400)
         .json({ status: "failed", message: "endsAt is required and must be a valid date" });
-    if (e <= s)
+    }
+    if (e <= s) {
       return res.status(400).json({ status: "failed", message: "endsAt must be later than startsAt" });
+    }
 
     const [template, group] = await Promise.all([getTemplateById(templateId), getGroupById(groupId)]);
 
@@ -89,7 +98,13 @@ export const createTestFromTemplate = async (req: Request, res: Response) => {
 
     await assignTestToGroup(groupId, newTest._id.toString());
 
-    return res.status(201).json({ status: "success", data: newTest });
+    // Jeśli chcesz: od razu zwróć test razem z template (żeby frontend nie robił 2 requestów)
+    const createdWithTemplate = await testModel
+      .findById(newTest._id)
+      .populate(TEMPLATE_POPULATE)
+      .lean();
+
+    return res.status(201).json({ status: "success", data: createdWithTemplate ?? newTest });
   } catch (err) {
     console.error("createTestFromTemplate error:", err);
     return res.status(500).json({ status: "error", message: "Test creation failed" });
@@ -113,9 +128,13 @@ export const getTestsForGroup = async (req: Request, res: Response) => {
       return res.status(404).json({ status: "fail", message: "Group not found or has no tests" });
     }
 
-    const testIds = group.tests.map((t: any) => t.test || t); // wspiera oba formaty
+    const testIds = group.tests.map((t: any) => t.test || t);
 
-    const tests = await getTests().where("_id").in(testIds);
+    const tests = await testModel
+      .find({ _id: { $in: testIds } })
+      .populate(TEMPLATE_POPULATE)
+      .lean();
+
     return res.status(200).json({ status: "success", data: tests });
   } catch (err) {
     console.error("getTestsForGroup error:", err);
@@ -125,7 +144,7 @@ export const getTestsForGroup = async (req: Request, res: Response) => {
 
 /**
  * GET /api/v1/tests/:id
- * Fetch a single test by its ID
+ * Fetch a single test by its ID (WITH template questions)
  */
 export const getTestByIdController = async (req: Request, res: Response) => {
   try {
@@ -135,7 +154,8 @@ export const getTestByIdController = async (req: Request, res: Response) => {
       return res.status(400).json({ status: "failed", message: "Invalid test id" });
     }
 
-    const test = await getTestById(id);
+    // KLUCZ: populate template
+    const test = await testModel.findById(id).populate(TEMPLATE_POPULATE).lean();
 
     if (!test) {
       return res.status(404).json({ status: "fail", message: "Test not found" });
@@ -151,15 +171,6 @@ export const getTestByIdController = async (req: Request, res: Response) => {
 /**
  * PATCH /api/v1/tests/:id
  * Partial update of test params (name/description/startsAt/endsAt/active).
- *
- * Body (any subset):
- * {
- *   name?: string,
- *   description?: string,
- *   startsAt?: string | Date,
- *   endsAt?: string | Date,
- *   active?: boolean
- * }
  */
 export const updateTestController = async (req: Request, res: Response) => {
   try {
@@ -212,7 +223,10 @@ export const updateTestController = async (req: Request, res: Response) => {
       return res.status(404).json({ status: "fail", message: "Test not found" });
     }
 
-    return res.status(200).json({ status: "success", data: updated });
+    // możesz też zwrócić z template, żeby frontend od razu miał komplet
+    const updatedWithTemplate = await testModel.findById(updated._id).populate(TEMPLATE_POPULATE).lean();
+
+    return res.status(200).json({ status: "success", data: updatedWithTemplate ?? updated });
   } catch (err) {
     console.error("updateTest error:", err);
     return res.status(500).json({ status: "error", message: "Test update failed" });
@@ -222,8 +236,6 @@ export const updateTestController = async (req: Request, res: Response) => {
 /**
  * DELETE /api/v1/tests/:id/group/:groupId
  * Delete test AND remove its assignment from the given group.
- *
- * To keep it deterministic, you pass groupId in URL.
  */
 export const deleteTestController = async (req: Request, res: Response) => {
   try {
@@ -241,7 +253,6 @@ export const deleteTestController = async (req: Request, res: Response) => {
       return res.status(404).json({ status: "fail", message: "Group not found" });
     }
 
-    // usuń przypisanie testu z grupy
     await Promise.all([
       groupModel.updateOne({ _id: groupId }, { $pull: { tests: { test: id } } }),
       groupModel.updateOne({ _id: groupId }, { $pull: { tests: id } }),
@@ -271,19 +282,6 @@ export const deleteTestController = async (req: Request, res: Response) => {
 /**
  * POST /api/v1/admin/tests/list
  * List ALL tests with pagination + optional search by name
- *
- * Body:
- * {
- *   "rowPePage": 10,
- *   "Page": 1,
- *   "search": "Test"   // optional
- * }
- *
- * Response:
- * {
- *   "total": 17,
- *   "data": [...]
- * }
  */
 export const listTestsController = async (req: Request, res: Response) => {
   try {
@@ -299,11 +297,7 @@ export const listTestsController = async (req: Request, res: Response) => {
 
     const filter: Record<string, any> = {};
     if (search) {
-      // prefix search (case-insensitive)
       filter.name = { $regex: `^${escapeRegex(search)}`, $options: "i" };
-
-      // jeśli chcesz "contains", zamień na:
-      // filter.name = { $regex: escapeRegex(search), $options: "i" };
     }
 
     const projection = {
@@ -324,6 +318,7 @@ export const listTestsController = async (req: Request, res: Response) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(rowPePage)
+        .populate(TEMPLATE_POPULATE) // <- tu masz template z pytaniami
         .lean(),
       testModel.countDocuments(filter),
     ]);

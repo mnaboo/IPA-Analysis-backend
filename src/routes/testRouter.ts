@@ -22,10 +22,80 @@ const routerAdmin = Router();
  *     description: Endpoints related to test instances
  */
 
-// User routes (auth required)
+// =======================
+// USER ROUTES (AUTH)
+// Mounted as: /api/v1/tests
+// =======================
 router.use(requireAuth);
 
-// Admin routes (auth + admin)
+/**
+ * @openapi
+ * /api/v1/tests/group/{groupId}:
+ *   get:
+ *     tags: [Test]
+ *     summary: Get all tests for a given group (authenticated users)
+ *     security:
+ *       - cookieAuth: []
+ *       - sessionToken: []
+ *     parameters:
+ *       - in: path
+ *         name: groupId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: List of tests (each with populated template questions)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: "success" }
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TestWithTemplate'
+ *       400: { description: Invalid groupId }
+ *       404: { description: Group not found or has no tests }
+ *       500: { description: Server error }
+ */
+router.get("/group/:groupId", getTestsForGroup);
+
+/**
+ * @openapi
+ * /api/v1/tests/{id}:
+ *   get:
+ *     tags: [Test]
+ *     summary: Get test by ID (authenticated users)
+ *     security:
+ *       - cookieAuth: []
+ *       - sessionToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Test details (with populated template questions)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: "success" }
+ *                 data:
+ *                   $ref: '#/components/schemas/TestWithTemplate'
+ *       400: { description: Invalid test id }
+ *       404: { description: Test not found }
+ *       500: { description: Server error }
+ */
+router.get("/:id", getTestByIdController);
+
+// =======================
+// ADMIN ROUTES (AUTH+ADMIN)
+// Mounted as: /api/v1/admin/tests
+// =======================
 routerAdmin.use(requireAuth, requireRole(Role.Admin));
 
 /**
@@ -58,7 +128,16 @@ routerAdmin.use(requireAuth, requireRole(Role.Admin));
  *                 format: date-time
  *                 example: "2026-01-10T10:00:00.000Z"
  *     responses:
- *       201: { description: Test created and assigned }
+ *       201:
+ *         description: Test created and assigned (with populated template questions)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: "success" }
+ *                 data:
+ *                   $ref: '#/components/schemas/TestWithTemplate'
  *       400: { description: Validation error }
  *       401: { description: Unauthorized }
  *       404: { description: Template or group not found }
@@ -98,7 +177,7 @@ routerAdmin.post("/", createTestFromTemplate);
  *                 description: Optional prefix search by test name (case-insensitive)
  *     responses:
  *       200:
- *         description: Paginated tests list
+ *         description: Paginated tests list (with populated template questions)
  *         content:
  *           application/json:
  *             schema:
@@ -108,17 +187,7 @@ routerAdmin.post("/", createTestFromTemplate);
  *                 data:
  *                   type: array
  *                   items:
- *                     type: object
- *                     properties:
- *                       _id: { type: string }
- *                       name: { type: string }
- *                       description: { type: string }
- *                       template: { type: string }
- *                       createdBy: { type: string }
- *                       startsAt: { type: string, format: date-time }
- *                       endsAt: { type: string, format: date-time }
- *                       active: { type: boolean }
- *                       createdAt: { type: string, format: date-time }
+ *                     $ref: '#/components/schemas/TestWithTemplate'
  *       500: { description: Server error }
  */
 routerAdmin.post("/list", listTestsController);
@@ -146,15 +215,20 @@ routerAdmin.post("/list", listTestsController);
  *             properties:
  *               name: { type: string }
  *               description: { type: string }
- *               startsAt:
- *                 type: string
- *                 format: date-time
- *               endsAt:
- *                 type: string
- *                 format: date-time
+ *               startsAt: { type: string, format: date-time }
+ *               endsAt: { type: string, format: date-time }
  *               active: { type: boolean }
  *     responses:
- *       200: { description: Updated }
+ *       200:
+ *         description: Updated (with populated template questions)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: "success" }
+ *                 data:
+ *                   $ref: '#/components/schemas/TestWithTemplate'
  *       400: { description: Invalid id / validation error }
  *       404: { description: Test not found }
  *       500: { description: Server error }
@@ -200,50 +274,6 @@ routerAdmin.patch("/:id", updateTestController);
  *       500: { description: Server error }
  */
 routerAdmin.delete("/:id/group/:groupId", deleteTestController);
-
-/**
- * @openapi
- * /api/v1/tests/group/{groupId}:
- *   get:
- *     tags: [Test]
- *     summary: Get all tests for a given group (authenticated users)
- *     security:
- *       - cookieAuth: []
- *       - sessionToken: []
- *     parameters:
- *       - in: path
- *         name: groupId
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200: { description: List of tests }
- *       400: { description: Invalid groupId }
- *       404: { description: Group not found or has no tests }
- *       500: { description: Server error }
- */
-router.get("/group/:groupId", getTestsForGroup);
-
-/**
- * @openapi
- * /api/v1/tests/{id}:
- *   get:
- *     tags: [Test]
- *     summary: Get test by ID (authenticated users)
- *     security:
- *       - cookieAuth: []
- *       - sessionToken: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200: { description: Test details }
- *       400: { description: Invalid test id }
- *       404: { description: Test not found }
- *       500: { description: Server error }
- */
-router.get("/:id", getTestByIdController);
 
 export default router;
 export { routerAdmin };
