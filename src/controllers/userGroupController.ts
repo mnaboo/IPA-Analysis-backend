@@ -91,25 +91,34 @@ export const myGroups = async (req: Request, res: Response) => {
 export const getGroup = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: Id };
-    if (!isValidObjectId(id)) return res.status(400).json({ status: 'failed', message: 'Invalid group id' });
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ status: "failed", message: "Invalid group id" });
+    }
 
-    // ✅ populate test, żeby mieć startsAt i endsAt
     const g = await groupModel
-      .findById(id, { _id: 1, name: 1, description: 1, members: 1, tests: 1, createdAt: 1, updatedAt: 1 })
+      .findById(
+        id,
+        { _id: 1, name: 1, description: 1, members: 1, tests: 1, createdAt: 1, updatedAt: 1 }
+      )
       .populate({
-        path: 'tests.test',
-        select: '_id startsAt endsAt',
+        path: "tests.test",
+        // ✅ test info (jedno miejsce, bez duplikacji)
+        select: "_id name description active startsAt endsAt createdAt template",
+        populate: {
+          path: "template",
+          // ✅ pytania itd
+          select: "_id name description closedQuestions openQuestion createdBy createdAt updatedAt",
+        },
       })
       .lean();
 
-    if (!g) return res.status(404).json({ status: 'failed', message: 'Group not found' });
+    if (!g) return res.status(404).json({ status: "failed", message: "Group not found" });
 
     const currentUser = (req as any).currentUser;
     const uid: Id | undefined = currentUser?._id;
     const isMember = uid ? ((g as any).members ?? []).some((m: any) => String(m) === String(uid)) : false;
     const isAdmin = currentUser?.role === Role.Admin;
 
-    // ✅ members tylko dla admina (z index)
     let members: any[] = [];
     if (isAdmin) {
       members = await userModel
@@ -120,29 +129,37 @@ export const getGroup = async (req: Request, res: Response) => {
         .lean();
     }
 
-    // ✅ tests w wymaganym formacie: assignedAt/startsAt/endsAt + testId
+    // ✅ ZERO dublowania: tylko assignedAt + test (z template i pytaniami)
     const tests = Array.isArray((g as any).tests)
       ? (g as any).tests
           .map((t: any) => {
             const test = t.test;
             if (!test) return null;
+
             return {
-              testId: test._id,
               assignedAt: t.assignedAt ?? null,
-              startsAt: test.startsAt ?? null,
-              endsAt: test.endsAt ?? null,
+              test: {
+                _id: test._id,
+                name: test.name,
+                description: test.description ?? "",
+                active: test.active,
+                startsAt: test.startsAt ?? null,
+                endsAt: test.endsAt ?? null,
+                createdAt: test.createdAt ?? null,
+                template: test.template ?? null, // tu jest Template z closedQuestions/openQuestion
+              },
             };
           })
           .filter(Boolean)
       : [];
 
     return res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         group: {
           _id: (g as any)._id,
           name: (g as any).name,
-          description: (g as any).description ?? '',
+          description: (g as any).description ?? "",
           isMember,
           members,
           tests,
@@ -152,10 +169,12 @@ export const getGroup = async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    console.error('Error💥 getGroup:', err);
-    return res.status(500).json({ status: 'failed', message: 'getGroup error' });
+    console.error("Error💥 getGroup:", err);
+    return res.status(500).json({ status: "failed", message: "getGroup error" });
   }
 };
+
+
 
 // POST /api/v1/groups/:id/join
 export const joinGroup = async (req: Request, res: Response) => {
