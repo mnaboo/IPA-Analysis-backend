@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import { requireAuth } from '../middleware/auth';
-import { listGroups, myGroups, getGroup, joinGroup, leaveGroup } from '../controllers/userGroupController';
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth";
+import { listGroups, myGroups, getGroup, joinGroup, leaveGroup } from "../controllers/userGroupController";
 
 const router = Router();
 
@@ -11,7 +11,6 @@ const router = Router();
  *     description: User endpoints for class groups
  */
 
-// Wszystko poniżej tylko dla zalogowanych użytkowników
 router.use(requireAuth);
 
 /**
@@ -31,42 +30,17 @@ router.use(requireAuth);
  *             type: object
  *             required: [rowPePage, Page]
  *             properties:
- *               rowPePage:
- *                 type: integer
- *                 example: 10
- *                 minimum: 1
- *                 maximum: 100
- *               Page:
- *                 type: integer
- *                 example: 1
- *                 minimum: 1
+ *               rowPePage: { type: integer, example: 10, minimum: 1, maximum: 100 }
+ *               Page: { type: integer, example: 1, minimum: 1 }
  *               search:
  *                 type: string
  *                 example: "Grupa"
- *                 description: Optional search by group name (prefix match, case-insensitive)
+ *                 description: Optional prefix search by group name (case-insensitive)
  *     responses:
  *       200:
  *         description: Paginated groups list
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 total: { type: integer, example: 17 }
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id: { type: string }
- *                       name: { type: string }
- *                       description: { type: string }
- *                       isMember: { type: boolean, example: false }
- *                       membersCount: { type: number, example: 12 }
- *                       createdAt: { type: string, format: date-time }
- *                       updatedAt: { type: string, format: date-time }
  */
-router.post('/', listGroups);
+router.post("/", listGroups);
 
 /**
  * @openapi
@@ -85,42 +59,17 @@ router.post('/', listGroups);
  *             type: object
  *             required: [rowPePage, Page]
  *             properties:
- *               rowPePage:
- *                 type: integer
- *                 example: 10
- *                 minimum: 1
- *                 maximum: 100
- *               Page:
- *                 type: integer
- *                 example: 1
- *                 minimum: 1
+ *               rowPePage: { type: integer, example: 10, minimum: 1, maximum: 100 }
+ *               Page: { type: integer, example: 1, minimum: 1 }
  *               search:
  *                 type: string
  *                 example: "Grupa"
- *                 description: Optional search by group name (prefix match, case-insensitive)
+ *                 description: Optional prefix search by group name (case-insensitive)
  *     responses:
  *       200:
  *         description: Paginated my groups list
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 total: { type: integer, example: 5 }
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id: { type: string }
- *                       name: { type: string }
- *                       description: { type: string }
- *                       isMember: { type: boolean, example: true }
- *                       membersCount: { type: number, example: 12 }
- *                       createdAt: { type: string, format: date-time }
- *                       updatedAt: { type: string, format: date-time }
  */
-router.post('/me', myGroups);
+router.post("/me", myGroups);
 
 /**
  * @openapi
@@ -138,7 +87,7 @@ router.post('/me', myGroups);
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Group details
+ *         description: Group details with tests (assignedAt + full test info incl. template questions)
  *         content:
  *           application/json:
  *             schema:
@@ -167,22 +116,50 @@ router.post('/me', myGroups);
  *                               role: { type: string }
  *                         tests:
  *                           type: array
- *                           description: "Tests assigned to this group (assignment metadata + time window)"
+ *                           description: "Tests assigned to this group (NO duplication: assignedAt + test object)"
  *                           items:
  *                             type: object
  *                             properties:
- *                               testId: { type: string, example: "695c2a502ed1b8f9e3776e31" }
- *                               assignedAt: { type: string, format: date-time }
- *                               startsAt: { type: string, format: date-time, nullable: true }
- *                               endsAt: { type: string, format: date-time, nullable: true }
+ *                               assignedAt: { type: string, format: date-time, nullable: true }
+ *                               test:
+ *                                 type: object
+ *                                 properties:
+ *                                   _id: { type: string }
+ *                                   name: { type: string }
+ *                                   description: { type: string }
+ *                                   active: { type: boolean }
+ *                                   startsAt: { type: string, format: date-time, nullable: true }
+ *                                   endsAt: { type: string, format: date-time, nullable: true }
+ *                                   createdAt: { type: string, format: date-time, nullable: true }
+ *                                   template:
+ *                                     type: object
+ *                                     nullable: true
+ *                                     properties:
+ *                                       _id: { type: string }
+ *                                       name: { type: string }
+ *                                       description: { type: string }
+ *                                       closedQuestions:
+ *                                         type: array
+ *                                         items:
+ *                                           type: object
+ *                                           properties:
+ *                                             _id: { type: string }
+ *                                             text: { type: string }
+ *                                             type:
+ *                                               type: string
+ *                                               enum: [importance, performance]
+ *                                       openQuestion:
+ *                                         type: object
+ *                                         nullable: true
+ *                                         properties:
+ *                                           text: { type: string, nullable: true }
  *                         createdAt: { type: string, format: date-time }
  *                         updatedAt: { type: string, format: date-time }
- *       400:
- *         description: Invalid group id
- *       404:
- *         description: Group not found
+ *       400: { description: Invalid group id }
+ *       404: { description: Group not found }
+ *       500: { description: Server error }
  */
-router.get('/:id', getGroup);
+router.get("/:id", getGroup);
 
 /**
  * @openapi
@@ -199,14 +176,12 @@ router.get('/:id', getGroup);
  *         required: true
  *         schema: { type: string }
  *     responses:
- *       200:
- *         description: Joined (or already a member)
- *       400:
- *         description: Invalid group id
- *       404:
- *         description: Group not found
+ *       200: { description: Joined (or already a member) }
+ *       400: { description: Invalid group id }
+ *       404: { description: Group not found }
+ *       500: { description: Server error }
  */
-router.post('/:id/join', joinGroup);
+router.post("/:id/join", joinGroup);
 
 /**
  * @openapi
@@ -223,13 +198,11 @@ router.post('/:id/join', joinGroup);
  *         required: true
  *         schema: { type: string }
  *     responses:
- *       200:
- *         description: Left (or not a member)
- *       400:
- *         description: Invalid group id
- *       404:
- *         description: Group not found
+ *       200: { description: Left (or not a member) }
+ *       400: { description: Invalid group id }
+ *       404: { description: Group not found }
+ *       500: { description: Server error }
  */
-router.post('/:id/leave', leaveGroup);
+router.post("/:id/leave", leaveGroup);
 
 export default router;
