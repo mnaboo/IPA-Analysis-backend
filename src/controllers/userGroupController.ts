@@ -95,21 +95,12 @@ export const getGroup = async (req: Request, res: Response) => {
       return res.status(400).json({ status: "failed", message: "Invalid group id" });
     }
 
+    // NIE POPULUJEMY testów — bo nie chcemy ich zawartości
     const g = await groupModel
       .findById(
         id,
         { _id: 1, name: 1, description: 1, members: 1, tests: 1, createdAt: 1, updatedAt: 1 }
       )
-      .populate({
-        path: "tests.test",
-        // ✅ test info (jedno miejsce, bez duplikacji)
-        select: "_id name description active startsAt endsAt createdAt template",
-        populate: {
-          path: "template",
-          // ✅ pytania itd
-          select: "_id name description closedQuestions openQuestion createdBy createdAt updatedAt",
-        },
-      })
       .lean();
 
     if (!g) return res.status(404).json({ status: "failed", message: "Group not found" });
@@ -119,6 +110,7 @@ export const getGroup = async (req: Request, res: Response) => {
     const isMember = uid ? ((g as any).members ?? []).some((m: any) => String(m) === String(uid)) : false;
     const isAdmin = currentUser?.role === Role.Admin;
 
+    // members tylko dla admina
     let members: any[] = [];
     if (isAdmin) {
       members = await userModel
@@ -129,28 +121,16 @@ export const getGroup = async (req: Request, res: Response) => {
         .lean();
     }
 
-    // ✅ ZERO dublowania: tylko assignedAt + test (z template i pytaniami)
+    // ✅ minimalne info o przypisanych testach
     const tests = Array.isArray((g as any).tests)
       ? (g as any).tests
-          .map((t: any) => {
-            const test = t.test;
-            if (!test) return null;
-
-            return {
-              assignedAt: t.assignedAt ?? null,
-              test: {
-                _id: test._id,
-                name: test.name,
-                description: test.description ?? "",
-                active: test.active,
-                startsAt: test.startsAt ?? null,
-                endsAt: test.endsAt ?? null,
-                createdAt: test.createdAt ?? null,
-                template: test.template ?? null, // tu jest Template z closedQuestions/openQuestion
-              },
-            };
-          })
-          .filter(Boolean)
+          .map((t: any) => ({
+            testId: t.test,                 // ObjectId (bez populate)
+            assignedAt: t.assignedAt ?? null,
+            startsAt: t.startsAt ?? null,   // okno per grupa
+            endsAt: t.endsAt ?? null,
+          }))
+          .filter((t: any) => t.testId) // safety
       : [];
 
     return res.status(200).json({

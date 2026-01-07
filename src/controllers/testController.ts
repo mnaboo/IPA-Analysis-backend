@@ -96,7 +96,8 @@ export const createTestFromTemplate = async (req: Request, res: Response) => {
       endsAt: e,
     });
 
-    await assignTestToGroup(groupId, newTest._id.toString());
+    await assignTestToGroup(groupId, newTest._id.toString(), s, e);
+
 
     // Jeśli chcesz: od razu zwróć test razem z template (żeby frontend nie robił 2 requestów)
     const createdWithTemplate = await testModel

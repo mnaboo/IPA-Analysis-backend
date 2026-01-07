@@ -1,9 +1,9 @@
 // src/models/group.ts
-import mongoose from 'mongoose';
+import mongoose, { Types } from "mongoose";
 
 const groupTestSchema = new mongoose.Schema(
   {
-    test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
+    test: { type: mongoose.Schema.Types.ObjectId, ref: "Test", required: true },
 
     assignedAt: { type: Date, default: Date.now },
 
@@ -16,7 +16,7 @@ const groupTestSchema = new mongoose.Schema(
         validator: function (this: any, v: Date) {
           return !this.startsAt || v > this.startsAt;
         },
-        message: 'endsAt must be later than startsAt',
+        message: "endsAt must be later than startsAt",
       },
     },
   },
@@ -26,27 +26,26 @@ const groupTestSchema = new mongoose.Schema(
 const groupSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    description: { type: String, default: '' },
+    description: { type: String, default: "" },
 
-    members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true }],
+    members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", index: true }],
 
     tests: [groupTestSchema],
 
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );
 
-groupSchema.index({ 'tests.test': 1 });
-groupSchema.index({ 'tests.startsAt': 1 });
-groupSchema.index({ 'tests.endsAt': 1 });
+groupSchema.index({ "tests.test": 1 });
+groupSchema.index({ "tests.startsAt": 1 });
+groupSchema.index({ "tests.endsAt": 1 });
 groupSchema.index({ name: 1 });
 
-const groupModel = mongoose.model('Group', groupSchema);
+const groupModel = mongoose.model("Group", groupSchema);
 export default groupModel;
 
-
-// Helpers – taki sam styl jak w user.ts
+// Helpers
 export const getGroups = () => groupModel.find();
 export const getGroupById = (id: string) => groupModel.findById(id);
 export const createGroup = (values: Record<string, any>) =>
@@ -58,28 +57,66 @@ export const updateGroupById = (id: string, values: Record<string, any>) =>
 // członkostwo
 export const addMemberToGroup = (groupId: string, userId: string) =>
   groupModel.updateOne({ _id: groupId }, { $addToSet: { members: userId } });
+
 export const removeMemberFromGroup = (groupId: string, userId: string) =>
   groupModel.updateOne({ _id: groupId }, { $pull: { members: userId } });
 
-// testy przypięte do grupy
-export const assignTestToGroup = (groupId: string, testId: string) =>
-  groupModel.updateOne(
+function assertValidWindow(startsAt: Date, endsAt: Date) {
+  if (!(startsAt instanceof Date) || Number.isNaN(startsAt.getTime())) {
+    throw new Error("Invalid startsAt");
+  }
+  if (!(endsAt instanceof Date) || Number.isNaN(endsAt.getTime())) {
+    throw new Error("Invalid endsAt");
+  }
+  if (endsAt <= startsAt) {
+    throw new Error("endsAt must be later than startsAt");
+  }
+}
+
+// ✅ Jedna operacja, bez duplikatów, bez race-condition
+export const assignTestToGroup = async (groupId: string, testId: string, startsAt: Date, endsAt: Date) => {
+  assertValidWindow(startsAt, endsAt);
+
+  const testObjId = new Types.ObjectId(testId);
+
+  return groupModel.updateOne(
     { _id: groupId },
-    { $pull: { tests: { test: testId } } }
-  ).then(() =>
-    groupModel.updateOne(
-      { _id: groupId },
+    [
+      // usuń stare wpisy dla tego testu
       {
-        $push: {
+        $set: {
           tests: {
-            test: testId,
-            assignedAt: new Date(),
+            $filter: {
+              input: "$tests",
+              as: "t",
+              cond: { $ne: ["$$t.test", testObjId] },
+            },
           },
         },
-      }
-    )
+      },
+      // dodaj nowy wpis
+      {
+        $set: {
+          tests: {
+            $concatArrays: [
+              "$tests",
+              [
+                {
+                  test: testObjId,
+                  assignedAt: new Date(),
+                  startsAt,
+                  endsAt,
+                },
+              ],
+            ],
+          },
+        },
+      },
+    ]
   );
+};
 
-
-export const unassignTestFromGroup = (groupId: string, testId: string) =>
-  groupModel.updateOne({ _id: groupId }, { $pull: { tests: { test: testId } } });
+export const unassignTestFromGroup = (groupId: string, testId: string) => {
+  const testObjId = new Types.ObjectId(testId);
+  return groupModel.updateOne({ _id: groupId }, { $pull: { tests: { test: testObjId } } });
+};
