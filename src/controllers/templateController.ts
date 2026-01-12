@@ -1,6 +1,6 @@
 // src/controllers/templateController.ts
 import { Request, Response } from "express";
-import { isValidObjectId, Types } from "mongoose";
+import { isValidObjectId } from "mongoose";
 import templateModel, {
   createTemplate,
   deleteTemplateById,
@@ -8,6 +8,38 @@ import templateModel, {
   updateTemplateById,
 } from "../models/template";
 import userModel from "../models/user";
+
+/**
+ * Helper: doklej createdByIndex (user.index) do dokumentów które mają createdBy
+ */
+async function attachCreatedByIndex<T extends { createdBy?: any }>(
+  docs: T[]
+): Promise<Array<T & { createdByIndex: string | null }>> {
+  const userIds = [...new Set(docs.map((d) => String(d.createdBy)).filter(Boolean))];
+
+  if (userIds.length === 0) {
+    return docs.map((d) => ({ ...(d as any), createdByIndex: null }));
+  }
+
+  const users = await userModel
+    .find({ _id: { $in: userIds } }, { _id: 1, index: 1 })
+    .lean();
+
+  const userMap = new Map(users.map((u: any) => [String(u._id), u.index]));
+
+  return docs.map((d) => ({
+    ...(d as any),
+    createdByIndex: d.createdBy ? userMap.get(String(d.createdBy)) ?? null : null,
+  }));
+}
+
+async function attachCreatedByIndexOne<T extends { createdBy?: any }>(
+  doc: T | null
+): Promise<(T & { createdByIndex: string | null }) | null> {
+  if (!doc) return null;
+  const [withIndex] = await attachCreatedByIndex([doc]);
+  return withIndex ?? null;
+}
 
 // POST /api/v1/templates
 export const createTemplateController = async (req: Request, res: Response) => {
@@ -29,7 +61,9 @@ export const createTemplateController = async (req: Request, res: Response) => {
       createdBy,
     });
 
-    return res.status(201).json({ status: "success", data: template });
+    const templateWithIndex = await attachCreatedByIndexOne(template);
+
+    return res.status(201).json({ status: "success", data: templateWithIndex });
   } catch (err) {
     console.error("createTemplate error:", err);
     return res.status(500).json({ status: "error", message: "Template creation failed" });
@@ -46,12 +80,15 @@ export const updateTemplateController = async (req: Request, res: Response) => {
     }
 
     const updated = await updateTemplateById(id, req.body);
-
     if (!updated) {
       return res.status(404).json({ status: "fail", message: "Template not found" });
     }
 
-    return res.status(200).json({ status: "success", data: updated });
+    // updated może być Mongoose doc -> przerabiamy na plain
+    const updatedPlain = typeof (updated as any).toObject === "function" ? (updated as any).toObject() : updated;
+    const updatedWithIndex = await attachCreatedByIndexOne(updatedPlain);
+
+    return res.status(200).json({ status: "success", data: updatedWithIndex });
   } catch (err) {
     console.error("updateTemplate error:", err);
     return res.status(500).json({ status: "error", message: "Template update failed" });
@@ -68,7 +105,6 @@ export const deleteTemplateController = async (req: Request, res: Response) => {
     }
 
     const deleted = await deleteTemplateById(id);
-
     if (!deleted) {
       return res.status(404).json({ status: "fail", message: "Template not found" });
     }
@@ -107,15 +143,7 @@ export const getTemplatesController = async (req: Request, res: Response) => {
       templateModel.countDocuments(filter),
     ]);
 
-    // 🔹 Pobierz userów tworzących template’y
-    const userIds = [...new Set(templates.map(t => String(t.createdBy)).filter(Boolean))];
-    const users = await userModel.find({ _id: { $in: userIds } }, { _id: 1, index: 1 }).lean();
-    const userMap = new Map(users.map(u => [String(u._id), u.index]));
-
-    const data = templates.map(t => ({
-      ...t,
-      createdByIndex: t.createdBy ? userMap.get(String(t.createdBy)) ?? null : null,
-    }));
+    const data = await attachCreatedByIndex(templates as any[]);
 
     return res.status(200).json({ total, data });
   } catch (err) {
@@ -134,12 +162,15 @@ export const getTemplateByIdController = async (req: Request, res: Response) => 
     }
 
     const template = await getTemplateById(id);
-
     if (!template) {
       return res.status(404).json({ status: "fail", message: "Template not found" });
     }
 
-    return res.status(200).json({ status: "success", data: template });
+    // template może być Mongoose doc -> przerabiamy na plain
+    const templatePlain = typeof (template as any).toObject === "function" ? (template as any).toObject() : template;
+    const templateWithIndex = await attachCreatedByIndexOne(templatePlain);
+
+    return res.status(200).json({ status: "success", data: templateWithIndex });
   } catch (err) {
     console.error("getTemplateById error:", err);
     return res.status(500).json({ status: "error", message: "Fetching template failed" });

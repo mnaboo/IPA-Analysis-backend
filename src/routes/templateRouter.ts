@@ -1,13 +1,13 @@
-import { Router } from 'express';
-import { requireAuth, requireRole } from '../middleware/auth';
-import { Role } from '../models/user';
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { Role } from "../models/user";
 import {
   createTemplateController,
   deleteTemplateController,
   getTemplateByIdController,
   getTemplatesController,
   updateTemplateController,
-} from '../controllers/templateController';
+} from "../controllers/templateController";
 
 const router = Router();
 
@@ -52,11 +52,43 @@ router.use(requireAuth, requireRole(Role.Admin));
  *                 properties:
  *                   text: { type: string }
  *     responses:
- *       201: { description: Template created }
+ *       201:
+ *         description: Template created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: "success" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id: { type: string }
+ *                     name: { type: string }
+ *                     description: { type: string }
+ *                     closedQuestions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id: { type: string }
+ *                           text: { type: string }
+ *                           type:
+ *                             type: string
+ *                             enum: [importance, performance]
+ *                     openQuestion:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         text: { type: string, nullable: true }
+ *                     createdBy: { type: string, nullable: true, description: "User ObjectId" }
+ *                     createdByIndex: { type: string, nullable: true, description: "User index (from createdBy)" }
+ *                     createdAt: { type: string, format: date-time, nullable: true }
+ *                     updatedAt: { type: string, format: date-time, nullable: true }
  *       401: { description: Unauthorized }
  *       500: { description: Internal server error }
  */
-router.post('/', createTemplateController);
+router.post("/", createTemplateController);
 
 /**
  * @openapi
@@ -101,9 +133,33 @@ router.post('/', createTemplateController);
  *                   example: 17
  *                 data:
  *                   type: array
- *                   items: { $ref: '#/components/schemas/Template' }
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id: { type: string }
+ *                       name: { type: string }
+ *                       description: { type: string }
+ *                       closedQuestions:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             _id: { type: string }
+ *                             text: { type: string }
+ *                             type:
+ *                               type: string
+ *                               enum: [importance, performance]
+ *                       openQuestion:
+ *                         type: object
+ *                         nullable: true
+ *                         properties:
+ *                           text: { type: string, nullable: true }
+ *                       createdBy: { type: string, nullable: true, description: "User ObjectId" }
+ *                       createdByIndex: { type: string, nullable: true, description: "User index (from createdBy)" }
+ *                       createdAt: { type: string, format: date-time }
+ *                       updatedAt: { type: string, format: date-time }
  */
-router.post('/list', getTemplatesController);
+router.post("/list", getTemplatesController);
 
 /**
  * @openapi
@@ -120,11 +176,43 @@ router.post('/list', getTemplatesController);
  *         required: true
  *         schema: { type: string }
  *     responses:
- *       200: { description: Template found }
+ *       200:
+ *         description: Template found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: "success" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id: { type: string }
+ *                     name: { type: string }
+ *                     description: { type: string }
+ *                     closedQuestions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id: { type: string }
+ *                           text: { type: string }
+ *                           type:
+ *                             type: string
+ *                             enum: [importance, performance]
+ *                     openQuestion:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         text: { type: string, nullable: true }
+ *                     createdBy: { type: string, nullable: true, description: "User ObjectId" }
+ *                     createdByIndex: { type: string, nullable: true, description: "User index (from createdBy)" }
+ *                     createdAt: { type: string, format: date-time, nullable: true }
+ *                     updatedAt: { type: string, format: date-time, nullable: true }
  *       400: { description: Invalid template id }
  *       404: { description: Template not found }
  */
-router.get('/:id', getTemplateByIdController);
+router.get("/:id", getTemplateByIdController);
 
 /**
  * @openapi
@@ -155,17 +243,52 @@ router.get('/:id', getTemplateByIdController);
  *                   type: object
  *                   properties:
  *                     text: { type: string }
+ *                     type:
+ *                       type: string
+ *                       enum: [importance, performance]
  *               openQuestion:
  *                 type: object
  *                 nullable: true
  *                 properties:
  *                   text: { type: string }
  *     responses:
- *       200: { description: Template updated }
+ *       200:
+ *         description: Template updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: "success" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id: { type: string }
+ *                     name: { type: string }
+ *                     description: { type: string }
+ *                     closedQuestions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id: { type: string }
+ *                           text: { type: string }
+ *                           type:
+ *                             type: string
+ *                             enum: [importance, performance]
+ *                     openQuestion:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         text: { type: string, nullable: true }
+ *                     createdBy: { type: string, nullable: true, description: "User ObjectId" }
+ *                     createdByIndex: { type: string, nullable: true, description: "User index (from createdBy)" }
+ *                     createdAt: { type: string, format: date-time, nullable: true }
+ *                     updatedAt: { type: string, format: date-time, nullable: true }
  *       400: { description: Invalid template id }
  *       404: { description: Template not found }
  */
-router.put('/:id', updateTemplateController);
+router.put("/:id", updateTemplateController);
 
 /**
  * @openapi
@@ -186,6 +309,6 @@ router.put('/:id', updateTemplateController);
  *       400: { description: Invalid template id }
  *       404: { description: Template not found }
  */
-router.delete('/:id', deleteTemplateController);
+router.delete("/:id", deleteTemplateController);
 
 export default router;

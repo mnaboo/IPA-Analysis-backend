@@ -12,6 +12,7 @@ import testModel, {
 
 import groupModel, { assignTestToGroup, getGroupById } from "../models/group";
 import { getTemplateById } from "../models/template";
+import userModel from "../models/user";
 
 type Id = string;
 
@@ -30,6 +31,38 @@ const TEMPLATE_POPULATE = {
   path: "template",
   select: "_id name description closedQuestions openQuestion createdBy createdAt updatedAt",
 } as const;
+
+/**
+ * Helper: doklej createdByIndex (user.index) do dokumentów które mają createdBy
+ */
+async function attachCreatedByIndex<T extends { createdBy?: any }>(
+  docs: T[]
+): Promise<Array<T & { createdByIndex: string | null }>> {
+  const userIds = [...new Set(docs.map((d) => String(d.createdBy)).filter(Boolean))];
+
+  if (userIds.length === 0) {
+    return docs.map((d) => ({ ...(d as any), createdByIndex: null }));
+  }
+
+  const users = await userModel
+    .find({ _id: { $in: userIds } }, { _id: 1, index: 1 })
+    .lean();
+
+  const userMap = new Map(users.map((u: any) => [String(u._id), u.index]));
+
+  return docs.map((d) => ({
+    ...(d as any),
+    createdByIndex: d.createdBy ? userMap.get(String(d.createdBy)) ?? null : null,
+  }));
+}
+
+async function attachCreatedByIndexOne<T extends { createdBy?: any }>(
+  doc: T | null
+): Promise<(T & { createdByIndex: string | null }) | null> {
+  if (!doc) return null;
+  const [withIndex] = await attachCreatedByIndex([doc]);
+  return withIndex ?? null;
+}
 
 /**
  * POST /api/v1/tests
@@ -88,8 +121,8 @@ export const createTestFromTemplate = async (req: Request, res: Response) => {
     }
 
     const newTest = await createTest({
-      name: String(name ?? "").trim() || template.name,
-      description: description ?? template.description,
+      name: String(name ?? "").trim() || (template as any).name,
+      description: description ?? (template as any).description,
       template: templateId,
       createdBy,
       startsAt: s,
@@ -98,14 +131,13 @@ export const createTestFromTemplate = async (req: Request, res: Response) => {
 
     await assignTestToGroup(groupId, newTest._id.toString(), s, e);
 
+    // od razu zwróć test razem z template (żeby frontend nie robił 2 requestów)
+    const createdWithTemplate = await testModel.findById(newTest._id).populate(TEMPLATE_POPULATE).lean();
 
-    // Jeśli chcesz: od razu zwróć test razem z template (żeby frontend nie robił 2 requestów)
-    const createdWithTemplate = await testModel
-      .findById(newTest._id)
-      .populate(TEMPLATE_POPULATE)
-      .lean();
+    // ✅ doklej createdByIndex
+    const payload = await attachCreatedByIndexOne((createdWithTemplate ?? newTest) as any);
 
-    return res.status(201).json({ status: "success", data: createdWithTemplate ?? newTest });
+    return res.status(201).json({ status: "success", data: payload ?? createdWithTemplate ?? newTest });
   } catch (err) {
     console.error("createTestFromTemplate error:", err);
     return res.status(500).json({ status: "error", message: "Test creation failed" });
@@ -125,18 +157,18 @@ export const getTestsForGroup = async (req: Request, res: Response) => {
     }
 
     const group = await getGroupById(groupId);
-    if (!group || !group.tests || group.tests.length === 0) {
+    if (!group || !(group as any).tests || (group as any).tests.length === 0) {
       return res.status(404).json({ status: "fail", message: "Group not found or has no tests" });
     }
 
-    const testIds = group.tests.map((t: any) => t.test || t);
+    const testIds = (group as any).tests.map((t: any) => t.test || t);
 
-    const tests = await testModel
-      .find({ _id: { $in: testIds } })
-      .populate(TEMPLATE_POPULATE)
-      .lean();
+    const tests = await testModel.find({ _id: { $in: testIds } }).populate(TEMPLATE_POPULATE).lean();
 
-    return res.status(200).json({ status: "success", data: tests });
+    // ✅ doklej createdByIndex dla listy
+    const testsWithIndex = await attachCreatedByIndex(tests as any[]);
+
+    return res.status(200).json({ status: "success", data: testsWithIndex });
   } catch (err) {
     console.error("getTestsForGroup error:", err);
     return res.status(500).json({ status: "error", message: "Fetching tests failed" });
@@ -162,7 +194,10 @@ export const getTestByIdController = async (req: Request, res: Response) => {
       return res.status(404).json({ status: "fail", message: "Test not found" });
     }
 
-    return res.status(200).json({ status: "success", data: test });
+    // ✅ doklej createdByIndex
+    const testWithIndex = await attachCreatedByIndexOne(test as any);
+
+    return res.status(200).json({ status: "success", data: testWithIndex ?? test });
   } catch (err) {
     console.error("getTestById error:", err);
     return res.status(500).json({ status: "error", message: "Fetching test failed" });
@@ -219,15 +254,17 @@ export const updateTestController = async (req: Request, res: Response) => {
     }
 
     const updated = await updateTestById(id, patch);
-
     if (!updated) {
       return res.status(404).json({ status: "fail", message: "Test not found" });
     }
 
-    // możesz też zwrócić z template, żeby frontend od razu miał komplet
-    const updatedWithTemplate = await testModel.findById(updated._id).populate(TEMPLATE_POPULATE).lean();
+    // zwróć z template, żeby frontend od razu miał komplet
+    const updatedWithTemplate = await testModel.findById((updated as any)._id).populate(TEMPLATE_POPULATE).lean();
 
-    return res.status(200).json({ status: "success", data: updatedWithTemplate ?? updated });
+    // ✅ doklej createdByIndex
+    const payload = await attachCreatedByIndexOne((updatedWithTemplate ?? updated) as any);
+
+    return res.status(200).json({ status: "success", data: payload ?? updatedWithTemplate ?? updated });
   } catch (err) {
     console.error("updateTest error:", err);
     return res.status(500).json({ status: "error", message: "Test update failed" });
@@ -260,17 +297,17 @@ export const deleteTestController = async (req: Request, res: Response) => {
     ]);
 
     const deleted = await deleteTestById(id);
-
     if (!deleted) {
       return res.status(404).json({ status: "fail", message: "Test not found" });
     }
 
+    // ten response nie zwraca createdBy, więc nic nie doklejamy
     return res.status(200).json({
       status: "success",
       message: "Test deleted and unassigned from group",
       data: {
-        _id: deleted._id,
-        name: deleted.name,
+        _id: (deleted as any)._id,
+        name: (deleted as any).name,
         groupId,
       },
     });
@@ -319,12 +356,15 @@ export const listTestsController = async (req: Request, res: Response) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(rowPePage)
-        .populate(TEMPLATE_POPULATE) // <- tu masz template z pytaniami
+        .populate(TEMPLATE_POPULATE)
         .lean(),
       testModel.countDocuments(filter),
     ]);
 
-    return res.status(200).json({ total, data });
+    // ✅ doklej createdByIndex dla listy
+    const dataWithIndex = await attachCreatedByIndex(data as any[]);
+
+    return res.status(200).json({ total, data: dataWithIndex });
   } catch (err) {
     console.error("listTests error:", err);
     return res.status(500).json({ status: "error", message: "Fetching tests failed" });

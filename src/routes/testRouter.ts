@@ -44,7 +44,7 @@ router.use(requireAuth);
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: List of tests (each with populated template questions)
+ *         description: List of tests (each with populated template questions + createdByIndex)
  *         content:
  *           application/json:
  *             schema:
@@ -54,7 +54,42 @@ router.use(requireAuth);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/TestWithTemplate'
+ *                     type: object
+ *                     properties:
+ *                       _id: { type: string }
+ *                       name: { type: string }
+ *                       description: { type: string }
+ *                       active: { type: boolean }
+ *                       startsAt: { type: string, format: date-time, nullable: true }
+ *                       endsAt: { type: string, format: date-time, nullable: true }
+ *                       createdAt: { type: string, format: date-time, nullable: true }
+ *                       createdBy: { type: string, nullable: true, description: "User ObjectId" }
+ *                       createdByIndex: { type: string, nullable: true, description: "User index (from createdBy)" }
+ *                       template:
+ *                         type: object
+ *                         nullable: true
+ *                         properties:
+ *                           _id: { type: string }
+ *                           name: { type: string }
+ *                           description: { type: string }
+ *                           createdBy: { type: string, nullable: true }
+ *                           createdAt: { type: string, format: date-time, nullable: true }
+ *                           updatedAt: { type: string, format: date-time, nullable: true }
+ *                           closedQuestions:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 _id: { type: string }
+ *                                 text: { type: string }
+ *                                 type:
+ *                                   type: string
+ *                                   enum: [importance, performance]
+ *                           openQuestion:
+ *                             type: object
+ *                             nullable: true
+ *                             properties:
+ *                               text: { type: string, nullable: true }
  *       400: { description: Invalid groupId }
  *       404: { description: Group not found or has no tests }
  *       500: { description: Server error }
@@ -77,7 +112,7 @@ router.get("/group/:groupId", getTestsForGroup);
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Test details (with populated template questions)
+ *         description: Test details (with populated template questions + createdByIndex)
  *         content:
  *           application/json:
  *             schema:
@@ -85,7 +120,42 @@ router.get("/group/:groupId", getTestsForGroup);
  *               properties:
  *                 status: { type: string, example: "success" }
  *                 data:
- *                   $ref: '#/components/schemas/TestWithTemplate'
+ *                   type: object
+ *                   properties:
+ *                     _id: { type: string }
+ *                     name: { type: string }
+ *                     description: { type: string }
+ *                     active: { type: boolean }
+ *                     startsAt: { type: string, format: date-time, nullable: true }
+ *                     endsAt: { type: string, format: date-time, nullable: true }
+ *                     createdAt: { type: string, format: date-time, nullable: true }
+ *                     createdBy: { type: string, nullable: true, description: "User ObjectId" }
+ *                     createdByIndex: { type: string, nullable: true, description: "User index (from createdBy)" }
+ *                     template:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         _id: { type: string }
+ *                         name: { type: string }
+ *                         description: { type: string }
+ *                         createdBy: { type: string, nullable: true }
+ *                         createdAt: { type: string, format: date-time, nullable: true }
+ *                         updatedAt: { type: string, format: date-time, nullable: true }
+ *                         closedQuestions:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               _id: { type: string }
+ *                               text: { type: string }
+ *                               type:
+ *                                 type: string
+ *                                 enum: [importance, performance]
+ *                         openQuestion:
+ *                           type: object
+ *                           nullable: true
+ *                           properties:
+ *                             text: { type: string, nullable: true }
  *       400: { description: Invalid test id }
  *       404: { description: Test not found }
  *       500: { description: Server error }
@@ -129,7 +199,7 @@ routerAdmin.use(requireAuth, requireRole(Role.Admin));
  *                 example: "2026-01-10T10:00:00.000Z"
  *     responses:
  *       201:
- *         description: Test created and assigned (with populated template questions)
+ *         description: Test created and assigned (with populated template questions + createdByIndex)
  *         content:
  *           application/json:
  *             schema:
@@ -137,7 +207,42 @@ routerAdmin.use(requireAuth, requireRole(Role.Admin));
  *               properties:
  *                 status: { type: string, example: "success" }
  *                 data:
- *                   $ref: '#/components/schemas/TestWithTemplate'
+ *                   type: object
+ *                   properties:
+ *                     _id: { type: string }
+ *                     name: { type: string }
+ *                     description: { type: string }
+ *                     active: { type: boolean }
+ *                     startsAt: { type: string, format: date-time, nullable: true }
+ *                     endsAt: { type: string, format: date-time, nullable: true }
+ *                     createdAt: { type: string, format: date-time, nullable: true }
+ *                     createdBy: { type: string, nullable: true, description: "User ObjectId" }
+ *                     createdByIndex: { type: string, nullable: true, description: "User index (from createdBy)" }
+ *                     template:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         _id: { type: string }
+ *                         name: { type: string }
+ *                         description: { type: string }
+ *                         createdBy: { type: string, nullable: true }
+ *                         createdAt: { type: string, format: date-time, nullable: true }
+ *                         updatedAt: { type: string, format: date-time, nullable: true }
+ *                         closedQuestions:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               _id: { type: string }
+ *                               text: { type: string }
+ *                               type:
+ *                                 type: string
+ *                                 enum: [importance, performance]
+ *                         openQuestion:
+ *                           type: object
+ *                           nullable: true
+ *                           properties:
+ *                             text: { type: string, nullable: true }
  *       400: { description: Validation error }
  *       401: { description: Unauthorized }
  *       404: { description: Template or group not found }
@@ -177,7 +282,7 @@ routerAdmin.post("/", createTestFromTemplate);
  *                 description: Optional prefix search by test name (case-insensitive)
  *     responses:
  *       200:
- *         description: Paginated tests list (with populated template questions)
+ *         description: Paginated tests list (with populated template questions + createdByIndex)
  *         content:
  *           application/json:
  *             schema:
@@ -187,7 +292,42 @@ routerAdmin.post("/", createTestFromTemplate);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/TestWithTemplate'
+ *                     type: object
+ *                     properties:
+ *                       _id: { type: string }
+ *                       name: { type: string }
+ *                       description: { type: string }
+ *                       active: { type: boolean }
+ *                       startsAt: { type: string, format: date-time, nullable: true }
+ *                       endsAt: { type: string, format: date-time, nullable: true }
+ *                       createdAt: { type: string, format: date-time, nullable: true }
+ *                       createdBy: { type: string, nullable: true, description: "User ObjectId" }
+ *                       createdByIndex: { type: string, nullable: true, description: "User index (from createdBy)" }
+ *                       template:
+ *                         type: object
+ *                         nullable: true
+ *                         properties:
+ *                           _id: { type: string }
+ *                           name: { type: string }
+ *                           description: { type: string }
+ *                           createdBy: { type: string, nullable: true }
+ *                           createdAt: { type: string, format: date-time, nullable: true }
+ *                           updatedAt: { type: string, format: date-time, nullable: true }
+ *                           closedQuestions:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 _id: { type: string }
+ *                                 text: { type: string }
+ *                                 type:
+ *                                   type: string
+ *                                   enum: [importance, performance]
+ *                           openQuestion:
+ *                             type: object
+ *                             nullable: true
+ *                             properties:
+ *                               text: { type: string, nullable: true }
  *       500: { description: Server error }
  */
 routerAdmin.post("/list", listTestsController);
@@ -220,7 +360,7 @@ routerAdmin.post("/list", listTestsController);
  *               active: { type: boolean }
  *     responses:
  *       200:
- *         description: Updated (with populated template questions)
+ *         description: Updated (with populated template questions + createdByIndex)
  *         content:
  *           application/json:
  *             schema:
@@ -228,7 +368,42 @@ routerAdmin.post("/list", listTestsController);
  *               properties:
  *                 status: { type: string, example: "success" }
  *                 data:
- *                   $ref: '#/components/schemas/TestWithTemplate'
+ *                   type: object
+ *                   properties:
+ *                     _id: { type: string }
+ *                     name: { type: string }
+ *                     description: { type: string }
+ *                     active: { type: boolean }
+ *                     startsAt: { type: string, format: date-time, nullable: true }
+ *                     endsAt: { type: string, format: date-time, nullable: true }
+ *                     createdAt: { type: string, format: date-time, nullable: true }
+ *                     createdBy: { type: string, nullable: true, description: "User ObjectId" }
+ *                     createdByIndex: { type: string, nullable: true, description: "User index (from createdBy)" }
+ *                     template:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         _id: { type: string }
+ *                         name: { type: string }
+ *                         description: { type: string }
+ *                         createdBy: { type: string, nullable: true }
+ *                         createdAt: { type: string, format: date-time, nullable: true }
+ *                         updatedAt: { type: string, format: date-time, nullable: true }
+ *                         closedQuestions:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               _id: { type: string }
+ *                               text: { type: string }
+ *                               type:
+ *                                 type: string
+ *                                 enum: [importance, performance]
+ *                         openQuestion:
+ *                           type: object
+ *                           nullable: true
+ *                           properties:
+ *                             text: { type: string, nullable: true }
  *       400: { description: Invalid id / validation error }
  *       404: { description: Test not found }
  *       500: { description: Server error }
