@@ -95,12 +95,13 @@ export const getGroup = async (req: Request, res: Response) => {
       return res.status(400).json({ status: "failed", message: "Invalid group id" });
     }
 
-    // NIE POPULUJEMY testów — bo nie chcemy ich zawartości
+    // ✅ Populate tylko nazwy testów
     const g = await groupModel
       .findById(
         id,
         { _id: 1, name: 1, description: 1, members: 1, tests: 1, createdAt: 1, updatedAt: 1 }
       )
+      .populate({ path: "tests.test", select: "name" }) // <-- TO DODAJE NAME
       .lean();
 
     if (!g) return res.status(404).json({ status: "failed", message: "Group not found" });
@@ -121,16 +122,20 @@ export const getGroup = async (req: Request, res: Response) => {
         .lean();
     }
 
-    // ✅ minimalne info o przypisanych testach
+    // ✅ minimalne info o przypisanych testach + testName
     const tests = Array.isArray((g as any).tests)
       ? (g as any).tests
-          .map((t: any) => ({
-            testId: t.test,                 // ObjectId (bez populate)
-            assignedAt: t.assignedAt ?? null,
-            startsAt: t.startsAt ?? null,   // okno per grupa
-            endsAt: t.endsAt ?? null,
-          }))
-          .filter((t: any) => t.testId) // safety
+          .map((t: any) => {
+            const populated = t.test && typeof t.test === "object";
+            return {
+              testId: populated ? t.test._id : t.test,      // ObjectId
+              testName: populated ? t.test.name : null,     // ✅ NAZWA
+              assignedAt: t.assignedAt ?? null,
+              startsAt: t.startsAt ?? null,
+              endsAt: t.endsAt ?? null,
+            };
+          })
+          .filter((t: any) => t.testId)
       : [];
 
     return res.status(200).json({
@@ -153,6 +158,7 @@ export const getGroup = async (req: Request, res: Response) => {
     return res.status(500).json({ status: "failed", message: "getGroup error" });
   }
 };
+
 
 
 

@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth";
-import { listGroups, myGroups, getGroup, joinGroup, leaveGroup } from "../controllers/userGroupController";
+import {
+  listGroups,
+  myGroups,
+  getGroup,
+  joinGroup,
+  leaveGroup,
+} from "../controllers/userGroupController";
 
 const router = Router();
 
@@ -87,7 +93,7 @@ router.post("/me", myGroups);
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Group details with tests (assignedAt + full test info incl. template questions)
+ *         description: Group details with assigned tests (testId + testName + assignment window)
  *         content:
  *           application/json:
  *             schema:
@@ -116,43 +122,18 @@ router.post("/me", myGroups);
  *                               role: { type: string }
  *                         tests:
  *                           type: array
- *                           description: "Tests assigned to this group (NO duplication: assignedAt + test object)"
+ *                           description: "Tests assigned to this group"
  *                           items:
  *                             type: object
  *                             properties:
+ *                               testId: { type: string, description: "Test ObjectId" }
+ *                               testName:
+ *                                 type: string
+ *                                 nullable: true
+ *                                 description: "Test name (populated from Test)"
  *                               assignedAt: { type: string, format: date-time, nullable: true }
- *                               test:
- *                                 type: object
- *                                 properties:
- *                                   _id: { type: string }
- *                                   name: { type: string }
- *                                   description: { type: string }
- *                                   active: { type: boolean }
- *                                   startsAt: { type: string, format: date-time, nullable: true }
- *                                   endsAt: { type: string, format: date-time, nullable: true }
- *                                   createdAt: { type: string, format: date-time, nullable: true }
- *                                   template:
- *                                     type: object
- *                                     nullable: true
- *                                     properties:
- *                                       _id: { type: string }
- *                                       name: { type: string }
- *                                       description: { type: string }
- *                                       closedQuestions:
- *                                         type: array
- *                                         items:
- *                                           type: object
- *                                           properties:
- *                                             _id: { type: string }
- *                                             text: { type: string }
- *                                             type:
- *                                               type: string
- *                                               enum: [importance, performance]
- *                                       openQuestion:
- *                                         type: object
- *                                         nullable: true
- *                                         properties:
- *                                           text: { type: string, nullable: true }
+ *                               startsAt: { type: string, format: date-time, nullable: true }
+ *                               endsAt: { type: string, format: date-time, nullable: true }
  *                         createdAt: { type: string, format: date-time }
  *                         updatedAt: { type: string, format: date-time }
  *       400: { description: Invalid group id }
