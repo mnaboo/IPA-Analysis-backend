@@ -7,9 +7,6 @@ import {
   deleteGroup,
   assignTest,
   unassignTest,
-  // jeśli masz:
-  // adminListGroups,
-  // adminGetGroup,
 } from '../controllers/adminGroupController'; 
 
 const router = express.Router();

@@ -73,7 +73,6 @@ function assertValidWindow(startsAt: Date, endsAt: Date) {
   }
 }
 
-// ✅ Jedna operacja, bez duplikatów, bez race-condition
 export const assignTestToGroup = async (groupId: string, testId: string, startsAt: Date, endsAt: Date) => {
   assertValidWindow(startsAt, endsAt);
 

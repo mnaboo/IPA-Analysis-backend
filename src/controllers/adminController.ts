@@ -3,24 +3,6 @@ import { Request, Response } from 'express';
 import userModel, { Role } from '../models/user';
 import { isValidObjectId } from 'mongoose';
 
-/**
- * LIST USERS with pagination + search (by index)
- * Expected body:
- * {
- *   "rowPePage": 10,
- *   "Page": 2,
- *   "search": "173678"
- * }
- *
- * Response:
- * {
- *   "total": 17,
- *   "data": [...]
- * }
- *
- * IMPORTANT:
- * Use POST on the router for this endpoint if you want body reliably.
- */
 // POST /api/v1/admin/users
 export const listUsers = async (req: Request, res: Response) => {
   try {
@@ -40,7 +22,7 @@ export const listUsers = async (req: Request, res: Response) => {
       const isDigits = /^\d+$/.test(search);
       const asNumber = isDigits ? Number(search) : null;
 
-      // index może być string albo number w zależności od schematu -> obsłuż oba
+      // index może być string albo number w zależności od schematu
       filter.$or = [
         // string prefix
         { index: { $regex: `^${escapeRegex(search)}` } },

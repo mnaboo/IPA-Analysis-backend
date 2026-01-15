@@ -41,7 +41,7 @@ jest.mock("../middleware/auth", () => {
   };
 });
 
-// 3. Dopiero teraz importujemy app i funkcje z modeli
+//importujemy app i funkcje z modeli
 import app from "../app";
 import {
   createAnswer,

@@ -26,15 +26,11 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// To jest klucz: co zwracasz z populate
 const TEMPLATE_POPULATE = {
   path: "template",
   select: "_id name description closedQuestions openQuestion createdBy createdAt updatedAt",
 } as const;
 
-/**
- * Helper: doklej createdByIndex (user.index) do dokumentów które mają createdBy
- */
 async function attachCreatedByIndex<T extends { createdBy?: any }>(
   docs: T[]
 ): Promise<Array<T & { createdByIndex: string | null }>> {
@@ -66,17 +62,6 @@ async function attachCreatedByIndexOne<T extends { createdBy?: any }>(
 
 /**
  * POST /api/v1/tests
- * Create a new test from a template and assign it to a group
- *
- * Body:
- * {
- *   templateId: string,
- *   groupId: string,
- *   name?: string,
- *   description?: string,
- *   startsAt: string | Date,
- *   endsAt: string | Date
- * }
  */
 export const createTestFromTemplate = async (req: Request, res: Response) => {
   try {
@@ -134,7 +119,6 @@ export const createTestFromTemplate = async (req: Request, res: Response) => {
     // od razu zwróć test razem z template (żeby frontend nie robił 2 requestów)
     const createdWithTemplate = await testModel.findById(newTest._id).populate(TEMPLATE_POPULATE).lean();
 
-    // ✅ doklej createdByIndex
     const payload = await attachCreatedByIndexOne((createdWithTemplate ?? newTest) as any);
 
     return res.status(201).json({ status: "success", data: payload ?? createdWithTemplate ?? newTest });
@@ -146,7 +130,6 @@ export const createTestFromTemplate = async (req: Request, res: Response) => {
 
 /**
  * GET /api/v1/tests/group/:groupId
- * Fetch all tests assigned to a given group
  */
 export const getTestsForGroup = async (req: Request, res: Response) => {
   try {
@@ -165,7 +148,7 @@ export const getTestsForGroup = async (req: Request, res: Response) => {
 
     const tests = await testModel.find({ _id: { $in: testIds } }).populate(TEMPLATE_POPULATE).lean();
 
-    // ✅ doklej createdByIndex dla listy
+    //doklej createdByIndex dla listy
     const testsWithIndex = await attachCreatedByIndex(tests as any[]);
 
     return res.status(200).json({ status: "success", data: testsWithIndex });
@@ -177,7 +160,6 @@ export const getTestsForGroup = async (req: Request, res: Response) => {
 
 /**
  * GET /api/v1/tests/:id
- * Fetch a single test by its ID (WITH template questions)
  */
 export const getTestByIdController = async (req: Request, res: Response) => {
   try {
@@ -187,14 +169,11 @@ export const getTestByIdController = async (req: Request, res: Response) => {
       return res.status(400).json({ status: "failed", message: "Invalid test id" });
     }
 
-    // KLUCZ: populate template
     const test = await testModel.findById(id).populate(TEMPLATE_POPULATE).lean();
 
     if (!test) {
       return res.status(404).json({ status: "fail", message: "Test not found" });
     }
-
-    // ✅ doklej createdByIndex
     const testWithIndex = await attachCreatedByIndexOne(test as any);
 
     return res.status(200).json({ status: "success", data: testWithIndex ?? test });
@@ -206,7 +185,6 @@ export const getTestByIdController = async (req: Request, res: Response) => {
 
 /**
  * PATCH /api/v1/tests/:id
- * Partial update of test params (name/description/startsAt/endsAt/active).
  */
 export const updateTestController = async (req: Request, res: Response) => {
   try {
@@ -261,7 +239,6 @@ export const updateTestController = async (req: Request, res: Response) => {
     // zwróć z template, żeby frontend od razu miał komplet
     const updatedWithTemplate = await testModel.findById((updated as any)._id).populate(TEMPLATE_POPULATE).lean();
 
-    // ✅ doklej createdByIndex
     const payload = await attachCreatedByIndexOne((updatedWithTemplate ?? updated) as any);
 
     return res.status(200).json({ status: "success", data: payload ?? updatedWithTemplate ?? updated });
@@ -361,7 +338,6 @@ export const listTestsController = async (req: Request, res: Response) => {
       testModel.countDocuments(filter),
     ]);
 
-    // ✅ doklej createdByIndex dla listy
     const dataWithIndex = await attachCreatedByIndex(data as any[]);
 
     return res.status(200).json({ total, data: dataWithIndex });

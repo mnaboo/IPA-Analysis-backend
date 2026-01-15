@@ -9,9 +9,7 @@ import templateModel, {
 } from "../models/template";
 import userModel from "../models/user";
 
-/**
- * Helper: doklej createdByIndex (user.index) do dokumentów które mają createdBy
- */
+
 async function attachCreatedByIndex<T extends { createdBy?: any }>(
   docs: T[]
 ): Promise<Array<T & { createdByIndex: string | null }>> {

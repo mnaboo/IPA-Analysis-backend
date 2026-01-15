@@ -168,7 +168,6 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
       await sendPasswordResetEmail(user.mail, code);
     }
 
-    // Zawsze zwracamy 200 – nie ujawniamy czy mail istnieje
     return res.status(200).json({
       status: "success",
       message:
@@ -235,7 +234,7 @@ export const confirmPasswordReset = async (req: Request, res: Response) => {
         $unset: {
           "authentication.resetCode": "",
           "authentication.resetCodeExpiresAt": "",
-          "authentication.sessionToken": "", // 🔐 wyloguj wszystkie sesje
+          "authentication.sessionToken": "", //  wyloguj wszystkie sesje
         },
       }
     );

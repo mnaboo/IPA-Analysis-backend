@@ -6,9 +6,7 @@ import userModel, { Role } from '../models/user';
 
 type Id = string;
 
-/**
- * LIST GROUPS with pagination + search by name
- */
+
 // POST /api/v1/groups
 export const listGroups = async (req: Request, res: Response) => {
   try {
@@ -46,9 +44,7 @@ export const listGroups = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * MY GROUPS with pagination + search by name
- */
+
 // POST /api/v1/groups/me
 export const myGroups = async (req: Request, res: Response) => {
   try {
@@ -95,7 +91,6 @@ export const getGroup = async (req: Request, res: Response) => {
       return res.status(400).json({ status: "failed", message: "Invalid group id" });
     }
 
-    // ✅ Populate tylko nazwy testów
     const g = await groupModel
       .findById(
         id,
@@ -122,14 +117,13 @@ export const getGroup = async (req: Request, res: Response) => {
         .lean();
     }
 
-    // ✅ minimalne info o przypisanych testach + testName
     const tests = Array.isArray((g as any).tests)
       ? (g as any).tests
           .map((t: any) => {
             const populated = t.test && typeof t.test === "object";
             return {
               testId: populated ? t.test._id : t.test,      // ObjectId
-              testName: populated ? t.test.name : null,     // ✅ NAZWA
+              testName: populated ? t.test.name : null,     
               assignedAt: t.assignedAt ?? null,
               startsAt: t.startsAt ?? null,
               endsAt: t.endsAt ?? null,

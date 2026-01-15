@@ -198,7 +198,6 @@ export const adminListGroups = async (_req: Request, res: Response) => {
 };
 
 // GET /api/v1/admin/groups/:id
-// ✅ zwraca tests jako: [{ testId, assignedAt, startsAt, endsAt }]
 export const adminGetGroup = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: Id };

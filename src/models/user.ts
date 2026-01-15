@@ -21,7 +21,6 @@ const userSchema = new mongoose.Schema({
     repeatPassword: { type: String, required: true, select: false },
     salt: { type: String, select: false },
     sessionToken: { type: String, select: false },
-    // 🔽 NOWE POLA DO RESETU HASŁA
     resetCode: { type: String, select: false },
     resetCodeExpiresAt: { type: Date, select: false },
   }
